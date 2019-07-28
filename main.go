@@ -43,10 +43,19 @@ func main() {
 	http.ListenAndServe(addr, nil)
 }
 
+func GetUsageString() string {
+	msgText := "Hi~~~我是揪團啦\n"
+	msgText += "大家可以試著用下面的幾個關鍵字來揪團喔~\n"
+	msgText += "━ 開團: 告訴大家有新的揪團!\n"
+	msgText += "━ 我要xxx: xxx 是你想訂的東西喔!\n"
+	msgText += "━ 結單: 就是告訴大家下回請早的意思啦~\n"
+	msgText += "━ 印出明細: 看看大家訂了什麼\n"
+	msgText += "━ 使用說明: 讓再跟大家自我介紹一次\n"
+	return msgText
+}
+
 func EventTypeJoinHandler(event *linebot.Event) {
-	msgText := "Hello~~~~~\n"
-	msgText += "大家可以試著用 \n開團, 我要XXX, 印出明細 以及 收單 關鍵字\n"
-	msgText += "來揪團喔~!!\n"
+	msgText := GetUsageString()
 	msg := linebot.NewTextMessage(msgText)
 	if _, err := bot.ReplyMessage(event.ReplyToken, msg).Do(); err != nil {
 		log.Print(err)
@@ -54,9 +63,7 @@ func EventTypeJoinHandler(event *linebot.Event) {
 }
 
 func EventTypeMemberJoinedHandler(event *linebot.Event) {
-	msgText := "Hello~~~~~\n"
-	msgText += "大家可以試著用 \n開團, 我要XXX, 印出明細 以及 收單 關鍵字\n"
-	msgText += "來揪團喔~!!\n"
+	msgText := GetUsageString()
 	msg := linebot.NewTextMessage(msgText)
 	if _, err := bot.ReplyMessage(event.ReplyToken, msg).Do(); err != nil {
 		log.Print(err)
@@ -117,6 +124,8 @@ func EventTypeMessage_TextMessageHander(event *linebot.Event) {
 		msgText := "熱騰騰的明細出來啦~~\n"
 		msgText += GetAllRecordsString(groupID)
 		msg = linebot.NewTextMessage(msgText)
+	case strings.Contains(message.Text, "說明"):
+		msg = linebot.NewTextMessage(GetUsageString())
 	default:
 	}
 
