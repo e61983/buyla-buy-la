@@ -95,9 +95,9 @@ func EventTypeMessage_TextMessageHander(event *linebot.Event) {
 			msg = linebot.NewTextMessage("開團啦~~!!!!!\n以下開放下單\n--------------------- ")
 			log.Println("IsOpening = ", groups[groupID].IsOpening)
 		}
-	case strings.Contains(message.Text, "收單"):
+	case strings.Contains(message.Text, "結單"):
 		groups[groupID].IsOpening = false
-		msg = linebot.NewTextMessage("收單!!!!! \n" + GetAllRecordsString(groupID))
+		msg = linebot.NewTextMessage("結單啦!!!!! \n" + GetAllRecordsString(groupID))
 		log.Println("IsOpening = ", groups[groupID].IsOpening)
 	case strings.Contains(message.Text, "我要"):
 		if groups[groupID].IsOpening {
