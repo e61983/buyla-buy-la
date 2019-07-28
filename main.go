@@ -77,7 +77,7 @@ func GetAllRecordsString(groupID string) string {
 		msgText = "好像..什麼也沒有喔~~  ˊ_>ˋ "
 	} else {
 		for _, record := range groups[groupID].Records {
-			msgText = msgText + record.UserName + " 要:\n " + record.Goods + "\n"
+			msgText = msgText + "━ " + record.UserName + " 要:\n " + record.Goods + "\n"
 		}
 	}
 
