@@ -50,7 +50,7 @@ func GetUsageString() string {
 	msgText += "━ 我要xxx: xxx 是你想訂的東西喔!\n"
 	msgText += "━ 結單: 就是告訴大家下回請早的意思啦~\n"
 	msgText += "━ 印出明細: 看看大家訂了什麼\n"
-	msgText += "━ 使用說明: 讓再跟大家自我介紹一次\n"
+	msgText += "━ 使用說明: 跟大家再自我介紹一次\n"
 	return msgText
 }
 
