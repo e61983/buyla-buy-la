@@ -92,6 +92,9 @@ func EventTypeMessage_TextMessageHander(event *linebot.Event) {
 	groupID := event.Source.GroupID
 	userID := event.Source.UserID
 
+	message.Text = strings.Replace(message.Text, "［", "[", 1)
+	message.Text = strings.Replace(message.Text, "］", "]", 1)
+
 	switch {
 	case strings.Contains(message.Text, "[開團]"):
 		if groups[groupID].IsOpening {
