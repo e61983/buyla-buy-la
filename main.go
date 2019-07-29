@@ -18,6 +18,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"regexp"
 	"strings"
 
 	"github.com/line/line-bot-sdk-go/linebot"
@@ -50,6 +51,7 @@ func GetUsageString() string {
 	msgText += "━ [我要]xxx: xxx 是你想訂的東西喔!\n"
 	msgText += "━ [結單]: 就是告訴大家下回請早的意思啦~\n"
 	msgText += "━ [明細]: 看看大家訂了什麼\n"
+	msgText += "━ @XXX[咪兔]: 跟XXX 訂一樣的\n"
 	msgText += "━ [說明]: 跟大家再自我介紹一次\n"
 	msgText += "━ 叫你們 RD 出來滴霸格!!!: 沒什麼作用~只是發洩一下\n"
 
@@ -99,6 +101,15 @@ func AddUserGoodsAndReturnMessageString(groupID, userID, goods string) string {
 	return groups[groupID].Records[userID].UserName + "要" + goods
 }
 
+func GetUserGoods(groupID, userName string) string {
+	for key, record := range groups[groupID].Records {
+		if strings.EqualFold(record.UserName, userName) {
+			return string(groups[groupID].Records[key].Goods)
+		}
+	}
+	return ""
+}
+
 func EventTypeMessage_TextMessageHander(event *linebot.Event) {
 
 	message := event.Message.(*linebot.TextMessage)
@@ -132,13 +143,33 @@ func EventTypeMessage_TextMessageHander(event *linebot.Event) {
 		if groups[groupID].IsOpening {
 			goods := strings.Replace(message.Text, "[我要]", "", 1)
 			msg = linebot.NewTextMessage("好喔~! " + AddUserGoodsAndReturnMessageString(groupID, userID, goods))
-		}
+		}else{
+			msg = linebot.NewTextMessage("前一次揪團已結單\n等你開新團啦!")
+        }
 	case strings.Contains(message.Text, "[明細]"):
 		msgText := "熱騰騰的明細出來啦~~\n"
 		msgText += GetAllRecordsString(groupID)
 		msg = linebot.NewTextMessage(msgText)
 	case strings.Contains(message.Text, "[說明]"):
 		msg = linebot.NewTextMessage(GetUsageString())
+	case strings.Contains(message.Text, "[+1]"):
+		fallthrough
+	case strings.Contains(message.Text, "[咪兔]"):
+		if groups[groupID].IsOpening {
+			re := regexp.MustCompile(`(?m)@([^[]*)[\s\t]?\[([^[]*)]`)
+			fullName := re.FindAllStringSubmatch(message.Text, 1)
+			if len(fullName) > 0 {
+				targetDisplayName := strings.TrimSpace(fullName[0][1])
+				goods := GetUserGoods(groupID, targetDisplayName)
+				if goods != "" {
+					msg = linebot.NewTextMessage("好喔~! " + AddUserGoodsAndReturnMessageString(groupID, userID, goods))
+				} else {
+					msg = linebot.NewTextMessage(targetDisplayName + "還沒有訂喔!!!")
+				}
+			}
+		}else{
+			msg = linebot.NewTextMessage("前一次揪團已結單\n等你開新團啦!")
+        }
 	case strings.Contains(message.Text, "叫你們 RD 出來滴霸格!!!"):
 		msg = linebot.NewStickerMessage("11537", "52002739")
 	default:
