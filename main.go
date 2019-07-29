@@ -46,11 +46,11 @@ func main() {
 func GetUsageString() string {
 	msgText := "Hi~~~我是揪團啦\n"
 	msgText += "大家可以試著用下面的幾個關鍵字來揪團喔~\n"
-	msgText += "━ 開團: 告訴大家有新的揪團!\n"
-	msgText += "━ 我要xxx: xxx 是你想訂的東西喔!\n"
-	msgText += "━ 結單: 就是告訴大家下回請早的意思啦~\n"
-	msgText += "━ 印出明細: 看看大家訂了什麼\n"
-	msgText += "━ 使用說明: 跟大家再自我介紹一次\n"
+	msgText += "━ [開團]: 告訴大家有新的揪團!\n"
+	msgText += "━ [我要]xxx: xxx 是你想訂的東西喔!\n"
+	msgText += "━ [結單]: 就是告訴大家下回請早的意思啦~\n"
+	msgText += "━ [明細]: 看看大家訂了什麼\n"
+	msgText += "━ [說明]: 跟大家再自我介紹一次\n"
 	return msgText
 }
 
@@ -93,7 +93,7 @@ func EventTypeMessage_TextMessageHander(event *linebot.Event) {
 	userID := event.Source.UserID
 
 	switch {
-	case strings.Contains(message.Text, "開團"):
+	case strings.Contains(message.Text, "[開團]"):
 		if groups[groupID].IsOpening {
 			msg = linebot.NewTextMessage("已經在開了喔~!")
 		} else {
@@ -102,13 +102,17 @@ func EventTypeMessage_TextMessageHander(event *linebot.Event) {
 			msg = linebot.NewTextMessage("開團啦~~!!!!!\n以下開放下單\n--------------------- ")
 			log.Println("IsOpening = ", groups[groupID].IsOpening)
 		}
-	case strings.Contains(message.Text, "結單"):
-		groups[groupID].IsOpening = false
-		msg = linebot.NewTextMessage("結單啦!!!!! \n" + GetAllRecordsString(groupID))
-		log.Println("IsOpening = ", groups[groupID].IsOpening)
-	case strings.Contains(message.Text, "我要"):
+	case strings.Contains(message.Text, "[結單]"):
 		if groups[groupID].IsOpening {
-			goods := strings.Replace(message.Text, "我要", "", 1)
+			groups[groupID].IsOpening = false
+			msg = linebot.NewTextMessage("結單啦!!!!! \n" + GetAllRecordsString(groupID))
+			log.Println("IsOpening = ", groups[groupID].IsOpening)
+		} else {
+			msg = linebot.NewTextMessage("現在還沒有開始揪團~\n 大家都在等你開喔~!! XD")
+		}
+	case strings.Contains(message.Text, "[我要]"):
+		if groups[groupID].IsOpening {
+			goods := strings.Replace(message.Text, "[我要]", "", 1)
 			res, err := bot.GetGroupMemberProfile(groupID, userID).Do()
 			if err != nil {
 				log.Println("GetProfile err:", err)
@@ -120,11 +124,11 @@ func EventTypeMessage_TextMessageHander(event *linebot.Event) {
 			log.Println("Modify Record - ", res.DisplayName)
 			msg = linebot.NewTextMessage("好喔~! " + groups[groupID].Records[userID].UserName + "要" + goods)
 		}
-	case strings.Contains(message.Text, "印出明細"):
+	case strings.Contains(message.Text, "[明細]"):
 		msgText := "熱騰騰的明細出來啦~~\n"
 		msgText += GetAllRecordsString(groupID)
 		msg = linebot.NewTextMessage(msgText)
-	case strings.Contains(message.Text, "說明"):
+	case strings.Contains(message.Text, "[說明]"):
 		msg = linebot.NewTextMessage(GetUsageString())
 	default:
 	}
