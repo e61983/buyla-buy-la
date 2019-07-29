@@ -51,6 +51,8 @@ func GetUsageString() string {
 	msgText += "━ [結單]: 就是告訴大家下回請早的意思啦~\n"
 	msgText += "━ [明細]: 看看大家訂了什麼\n"
 	msgText += "━ [說明]: 跟大家再自我介紹一次\n"
+	msgText += "━ 叫你們 RD 出來滴霸格!!!: 沒什麼作用~只是發洩一下\n"
+
 	return msgText
 }
 
@@ -87,7 +89,7 @@ func GetAllRecordsString(groupID string) string {
 func EventTypeMessage_TextMessageHander(event *linebot.Event) {
 
 	message := event.Message.(*linebot.TextMessage)
-	var msg *linebot.TextMessage
+	var msg linebot.SendingMessage
 
 	groupID := event.Source.GroupID
 	userID := event.Source.UserID
@@ -133,6 +135,8 @@ func EventTypeMessage_TextMessageHander(event *linebot.Event) {
 		msg = linebot.NewTextMessage(msgText)
 	case strings.Contains(message.Text, "[說明]"):
 		msg = linebot.NewTextMessage(GetUsageString())
+	case strings.Contains(message.Text, "叫你們 RD 出來滴霸格!!!"):
+		msg = linebot.NewStickerMessage("11537", "52002739")
 	default:
 	}
 
