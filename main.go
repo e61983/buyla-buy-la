@@ -86,6 +86,19 @@ func GetAllRecordsString(groupID string) string {
 	return msgText
 }
 
+func AddUserGoodsAndReturnMessageString(groupID, userID, goods string) string {
+	res, err := bot.GetGroupMemberProfile(groupID, userID).Do()
+	if err != nil {
+		log.Println("GetProfile err:", err)
+	}
+	record := buy.NewRecord()
+	record.UserName = res.DisplayName
+	record.Goods = goods
+	groups[groupID].Records[userID] = record
+	log.Println("Modify Record - ", res.DisplayName)
+	return groups[groupID].Records[userID].UserName + "要" + goods
+}
+
 func EventTypeMessage_TextMessageHander(event *linebot.Event) {
 
 	message := event.Message.(*linebot.TextMessage)
@@ -118,16 +131,7 @@ func EventTypeMessage_TextMessageHander(event *linebot.Event) {
 	case strings.Contains(message.Text, "[我要]"):
 		if groups[groupID].IsOpening {
 			goods := strings.Replace(message.Text, "[我要]", "", 1)
-			res, err := bot.GetGroupMemberProfile(groupID, userID).Do()
-			if err != nil {
-				log.Println("GetProfile err:", err)
-			}
-			record := buy.NewRecord()
-			record.UserName = res.DisplayName
-			record.Goods = goods
-			groups[groupID].Records[userID] = record
-			log.Println("Modify Record - ", res.DisplayName)
-			msg = linebot.NewTextMessage("好喔~! " + groups[groupID].Records[userID].UserName + "要" + goods)
+			msg = linebot.NewTextMessage("好喔~! " + AddUserGoodsAndReturnMessageString(groupID, userID, goods))
 		}
 	case strings.Contains(message.Text, "[明細]"):
 		msgText := "熱騰騰的明細出來啦~~\n"
