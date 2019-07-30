@@ -3,6 +3,7 @@ package buy
 type Group struct {
 	ID        string
 	IsOpening bool
+	Store     string
 	Records   map[string]*Record
 }
 
@@ -28,6 +29,6 @@ func NewGroup(groupID string) *Group {
 }
 
 func NewRecord() *Record {
-    record := &Record{UserName: "", Goods: ""}
+	record := &Record{UserName: "", Goods: ""}
 	return record
 }

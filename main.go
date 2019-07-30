@@ -47,13 +47,13 @@ func main() {
 func GetUsageString() string {
 	msgText := "Hi~~~我是揪團啦\n"
 	msgText += "大家可以試著用下面的幾個關鍵字來揪團喔~\n"
-	msgText += "━ [開團]: 告訴大家有新的揪團!\n"
-	msgText += "━ [我要]xxx: xxx 是你想訂的東西喔!\n"
-	msgText += "━ [結單]: 就是告訴大家下回請早的意思啦~\n"
-	msgText += "━ [明細]: 看看大家訂了什麼\n"
-	msgText += "━ @XXX[咪兔]: 跟XXX 訂一樣的\n"
-	msgText += "━ [說明]: 跟大家再自我介紹一次\n"
-	msgText += "━ 叫你們 RD 出來滴霸格!!!: 沒什麼作用~只是發洩一下\n"
+	msgText += "- [開團]XXX : \n    告訴大家有新的揪團! 是要訂 XXX\n"
+	msgText += "- [我要]xxx: \n    xxx 是你想訂的東西喔!\n"
+	msgText += "- [結單]: \n    就是告訴大家下回請早的意思啦~\n"
+	msgText += "- [明細]: \n    看看大家訂了什麼\n"
+	msgText += "- @XXX[咪兔]: \n    跟XXX 訂一樣的\n"
+	msgText += "- [說明]: \n    跟大家再自我介紹一次\n"
+	msgText += "- 叫你們 RD 出來滴霸格!!!: \n    沒什麼作用~只是發洩一下\n"
 
 	return msgText
 }
@@ -123,13 +123,23 @@ func EventTypeMessage_TextMessageHander(event *linebot.Event) {
 
 	switch {
 	case strings.Contains(message.Text, "[開團]"):
+		re := regexp.MustCompile(`(?m)\[開團\][\s\n\t ]*([\S]*)`)
+		store := re.FindAllStringSubmatch(message.Text, 1)
 		if groups[groupID].IsOpening {
 			msg = linebot.NewTextMessage("已經在開了喔~!")
 		} else {
-			groups[groupID].IsOpening = true
-			groups[groupID].Records = buy.NewRecords()
-			msg = linebot.NewTextMessage("開團啦~~!!!!!\n以下開放下單\n--------------------- ")
-			log.Println("IsOpening = ", groups[groupID].IsOpening)
+			if len(store) > 0 {
+				targetStore := strings.TrimSpace(store[0][1])
+				if targetStore != "" {
+					groups[groupID].Store = targetStore
+					groups[groupID].IsOpening = true
+					groups[groupID].Records = buy.NewRecords()
+					msg = linebot.NewTextMessage("開團啦~~!!!!!\n這次是 " + groups[groupID].Store + " 喔\n\n----------以下開放下單----------\n ")
+					log.Println("IsOpening = ", groups[groupID].IsOpening)
+				} else {
+					msg = linebot.NewTextMessage("開團的時候要告訴大家要訂哪一間!!\n")
+				}
+			}
 		}
 	case strings.Contains(message.Text, "[結單]"):
 		if groups[groupID].IsOpening {
