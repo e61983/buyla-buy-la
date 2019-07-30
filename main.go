@@ -156,7 +156,7 @@ func EventTypeMessage_TextMessageHander(event *linebot.Event) {
 		fallthrough
 	case strings.Contains(message.Text, "[咪兔]"):
 		if groups[groupID].IsOpening {
-			re := regexp.MustCompile(`(?m)@([^[]*)[\s\t]?\[([^[]*)]`)
+			re := regexp.MustCompile(`(?m)@([^[]*)[\s\n\r\t ]*(\[[^[]*\])`)
 			fullName := re.FindAllStringSubmatch(message.Text, 1)
 			if len(fullName) > 0 {
 				targetDisplayName := strings.TrimSpace(fullName[0][1])
