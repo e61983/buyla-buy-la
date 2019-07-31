@@ -13,12 +13,11 @@
 package main
 
 import (
-	"buy"
 	"fmt"
+	"github.com/e61983/buyla-buy-la/buy"
 	"log"
 	"net/http"
 	"os"
-	"regexp"
 	"strings"
 
 	"github.com/line/line-bot-sdk-go/linebot"
@@ -74,42 +73,6 @@ func EventTypeMemberJoinedHandler(event *linebot.Event) {
 	}
 }
 
-func GetAllRecordsString(groupID string) string {
-	var msgText string
-	recordNumber := len(groups[groupID].Records)
-	if recordNumber == 0 {
-		msgText = "好像..什麼也沒有喔~~  ˊ_>ˋ "
-	} else {
-		for _, record := range groups[groupID].Records {
-			msgText = msgText + "━ " + record.UserName + " 要:\n " + record.Goods + "\n"
-		}
-	}
-
-	return msgText
-}
-
-func AddUserGoodsAndReturnMessageString(groupID, userID, goods string) string {
-	res, err := bot.GetGroupMemberProfile(groupID, userID).Do()
-	if err != nil {
-		log.Println("GetProfile err:", err)
-	}
-	record := buy.NewRecord()
-	record.UserName = res.DisplayName
-	record.Goods = goods
-	groups[groupID].Records[userID] = record
-	log.Println("Modify Record - ", res.DisplayName)
-	return groups[groupID].Records[userID].UserName + "要" + goods
-}
-
-func GetUserGoods(groupID, userName string) string {
-	for key, record := range groups[groupID].Records {
-		if strings.EqualFold(record.UserName, userName) {
-			return string(groups[groupID].Records[key].Goods)
-		}
-	}
-	return ""
-}
-
 func EventTypeMessage_TextMessageHander(event *linebot.Event) {
 
 	message := event.Message.(*linebot.TextMessage)
@@ -121,66 +84,70 @@ func EventTypeMessage_TextMessageHander(event *linebot.Event) {
 	message.Text = strings.Replace(message.Text, "［", "[", 1)
 	message.Text = strings.Replace(message.Text, "］", "]", 1)
 
-	switch {
-	case strings.Contains(message.Text, "[開團]"):
-		re := regexp.MustCompile(`(?m)\[開團\][\s\n\t ]*([\S]*)`)
-		store := re.FindAllStringSubmatch(message.Text, 1)
+	command, err := buy.ParseCommand(userID, message.Text)
+
+	if err != nil {
+		return
+	}
+
+	switch command.(type) {
+	case *buy.OpenNewBuyLaCommand:
 		if groups[groupID].IsOpening {
 			msg = linebot.NewTextMessage("已經在開了喔~!")
 		} else {
-			if len(store) > 0 {
-				targetStore := strings.TrimSpace(store[0][1])
-				if targetStore != "" {
-					groups[groupID].Store = targetStore
-					groups[groupID].IsOpening = true
-					groups[groupID].Records = buy.NewRecords()
-					msg = linebot.NewTextMessage("開團啦~~!!!!!\n這次是 " + groups[groupID].Store + " 喔\n\n----------以下開放下單----------\n ")
-					log.Println("IsOpening = ", groups[groupID].IsOpening)
-				} else {
-					msg = linebot.NewTextMessage("開團的時候要告訴大家要訂哪一間!!\n")
-				}
+			c := command.(*buy.OpenNewBuyLaCommand)
+			if c.ShopName != "" {
+				groups[groupID].Store = c.ShopName
+				groups[groupID].IsOpening = true
+				groups[groupID].Records = buy.NewRecords()
+				msg = linebot.NewTextMessage("開團啦~~!!!!!\n這次是 " + groups[groupID].Store + " 喔\n\n----------以下開放下單----------\n ")
+				log.Println("IsOpening = ", groups[groupID].IsOpening)
+			} else {
+				msg = linebot.NewTextMessage("開團的時候要告訴大家要訂哪一間!!\n")
 			}
 		}
-	case strings.Contains(message.Text, "[結單]"):
+	case *buy.CloseBuyLaCommand:
 		if groups[groupID].IsOpening {
 			groups[groupID].IsOpening = false
-			msg = linebot.NewTextMessage("結單啦!!!!! \n" + GetAllRecordsString(groupID))
+			msg = linebot.NewTextMessage("結單啦!!!!! \n" + groups[groupID].String())
 			log.Println("IsOpening = ", groups[groupID].IsOpening)
 		} else {
 			msg = linebot.NewTextMessage("現在還沒有開始揪團~\n 大家都在等你開喔~!! XD")
 		}
-	case strings.Contains(message.Text, "[我要]"):
+	case *buy.WantCommand:
 		if groups[groupID].IsOpening {
-			goods := strings.Replace(message.Text, "[我要]", "", 1)
-			msg = linebot.NewTextMessage("好喔~! " + AddUserGoodsAndReturnMessageString(groupID, userID, goods))
-		}else{
-			msg = linebot.NewTextMessage("前一次揪團已結單\n等你開新團啦!")
-        }
-	case strings.Contains(message.Text, "[明細]"):
-		msgText := "熱騰騰的明細出來啦~~\n"
-		msgText += GetAllRecordsString(groupID)
-		msg = linebot.NewTextMessage(msgText)
-	case strings.Contains(message.Text, "[說明]"):
-		msg = linebot.NewTextMessage(GetUsageString())
-	case strings.Contains(message.Text, "[+1]"):
-		fallthrough
-	case strings.Contains(message.Text, "[咪兔]"):
-		if groups[groupID].IsOpening {
-			re := regexp.MustCompile(`(?m)@([^[]*)[\s\n\r\t ]*(\[[^[]*\])`)
-			fullName := re.FindAllStringSubmatch(message.Text, 1)
-			if len(fullName) > 0 {
-				targetDisplayName := strings.TrimSpace(fullName[0][1])
-				goods := GetUserGoods(groupID, targetDisplayName)
-				if goods != "" {
-					msg = linebot.NewTextMessage("好喔~! " + AddUserGoodsAndReturnMessageString(groupID, userID, goods))
-				} else {
-					msg = linebot.NewTextMessage(targetDisplayName + "還沒有訂喔!!!")
-				}
+			c := command.(*buy.WantCommand)
+			res, err := bot.GetGroupMemberProfile(groupID, userID).Do()
+			if err != nil {
+				log.Println("GetProfile err:", err)
 			}
-		}else{
+			msg = linebot.NewTextMessage("好喔~! " + groups[groupID].AddUserGoods(userID, res.DisplayName, c.Goods))
+		} else {
 			msg = linebot.NewTextMessage("前一次揪團已結單\n等你開新團啦!")
-        }
-	case strings.Contains(message.Text, "叫你們 RD 出來滴霸格!!!"):
+		}
+	case *buy.ShowRecordCommand:
+		msgText := "熱騰騰的明細出來啦~~\n"
+		msgText += groups[groupID].String()
+		msg = linebot.NewTextMessage(msgText)
+	case *buy.HelpCommand:
+		msg = linebot.NewTextMessage(GetUsageString())
+	case *buy.MeTooCommand:
+		if groups[groupID].IsOpening {
+			c := command.(*buy.MeTooCommand)
+			record := groups[groupID].GetRecord(c.TargetName)
+			if record != nil && record.Goods != "" {
+				res, err := bot.GetGroupMemberProfile(groupID, userID).Do()
+				if err != nil {
+					log.Println("GetProfile err:", err)
+				}
+				msg = linebot.NewTextMessage("好喔~! " + groups[groupID].AddUserGoods(userID, res.DisplayName, record.Goods))
+			} else {
+				msg = linebot.NewTextMessage(c.TargetName + " 還沒有訂喔!!!")
+			}
+		} else {
+			msg = linebot.NewTextMessage("前一次揪團已結單\n等你開新團啦!")
+		}
+	case *buy.RDDebugCommand:
 		msg = linebot.NewStickerMessage("11537", "52002739")
 	default:
 	}

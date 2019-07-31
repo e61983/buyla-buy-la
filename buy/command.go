@@ -12,7 +12,8 @@ const (
 	CommandTypeWant         CommandType = "我要"
 	CommandTypeCloseBuyLa   CommandType = "結單"
 	CommandTypeShowRecord   CommandType = "明細"
-	CommandTypeMeToo        CommandType = "咪兔"
+	CommandTypeMeToo_v1     CommandType = "咪兔"
+	CommandTypeMeToo_v2     CommandType = "+1"
 	CommandTypeHelp         CommandType = "說明"
 	CommandTypeRDDebug      CommandType = "叫你們 RD 出來滴霸格!!!"
 )
@@ -63,40 +64,30 @@ func ParseCommand(userID, message string) (command Command, err error) {
 
 	token := parse.FindAllStringSubmatch(message, 1)
 	if len(token) == 0 {
-		err = errors.New("Not a Command")
+		if strings.Contains(message, string(CommandTypeRDDebug)) {
+			return NewRDDebugCommand(userID), nil
+		} else {
+			err = errors.New("Not a Command")
+			return
+		}
 	}
 
 	mentionName := strings.TrimSpace(token[0][2])
 	keyword := CommandType(strings.TrimSpace(token[0][3]))
 	others := strings.TrimSpace(token[0][4])
 
-	if userID == "" {
-		err = errors.New("User ID is Empty")
-	}
-
-	if err != nil {
-		return
-	}
-
 	switch keyword {
 	case CommandTypeOpenNewBuyLa:
-		if others == "" {
-			err = errors.New("Shop Name is Empty")
-		}
 		command = NewOpenNewBuyLaCommand(userID, others)
 	case CommandTypeWant:
-		if others == "" {
-			err = errors.New("Goods is Empty")
-		}
 		command = NewWantCommand(userID, others)
 	case CommandTypeCloseBuyLa:
 		command = NewCloseBuyLaCommand(userID)
 	case CommandTypeShowRecord:
 		command = NewShowRecordCommand(userID)
-	case CommandTypeMeToo:
-		if mentionName == "" {
-			err = errors.New("MentionName is Empty")
-		}
+	case CommandTypeMeToo_v1:
+		fallthrough
+	case CommandTypeMeToo_v2:
 		command = NewMeTooCommand(userID, mentionName)
 	case CommandTypeHelp:
 		command = NewHelpCommand(userID)

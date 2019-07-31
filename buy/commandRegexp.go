@@ -11,4 +11,4 @@ import (
 // [3]: Command: it remove [] arealy.
 // [4]: Others: maybe is Goods, or Shop Name
 
-var parse = regexp.MustCompile(`^(@([^[]*))?\[[\s\n\t ]*([\p{Han}]*)[\s\n\t ]*\][\s\n\t ]*(.*)`)
+var parse = regexp.MustCompile(`^(@([^[]*))?\[[\s\n\t ]*([\p{Han}|(+1)]*)[\s\n\t ]*\][\s\n\t ]*(.*)`)
