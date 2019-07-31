@@ -10,7 +10,7 @@ all: fmt test
 
 .PHONY: fmt
 fmt:
-	@$(GO_FMT)
+	@$(GO_FMT) ./...
 
 .PHONY: test
 test:

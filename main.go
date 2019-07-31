@@ -44,8 +44,7 @@ func main() {
 }
 
 func GetUsageString() string {
-	msgText := "Hi~~~我是揪團啦\n"
-	msgText += "大家可以試著用下面的幾個關鍵字來揪團喔~\n"
+	msgText := "可以試著用下面的幾個關鍵字來揪團喔~\n"
 	msgText += "- [開團]XXX : \n    告訴大家有新的揪團! 是要訂 XXX\n"
 	msgText += "- [我要]xxx: \n    xxx 是你想訂的東西喔!\n"
 	msgText += "- [結單]: \n    就是告訴大家下回請早的意思啦~\n"
@@ -57,16 +56,27 @@ func GetUsageString() string {
 	return msgText
 }
 
-func EventTypeJoinHandler(event *linebot.Event) {
-	msgText := GetUsageString()
+func EventTypeMemberJoinedHandler(event *linebot.Event) {
+	var displayName string
+	groupID := event.Source.GroupID
+	userID := event.Source.UserID
+	res, err := bot.GetGroupMemberProfile(groupID, userID).Do()
+	if err != nil {
+		log.Println("GetProfile err:", err)
+	} else {
+		displayName = res.DisplayName
+	}
+	msgText := "Hi~~~" + displayName + "\n"
+	msgText += GetUsageString()
 	msg := linebot.NewTextMessage(msgText)
 	if _, err := bot.ReplyMessage(event.ReplyToken, msg).Do(); err != nil {
 		log.Print(err)
 	}
 }
 
-func EventTypeMemberJoinedHandler(event *linebot.Event) {
-	msgText := GetUsageString()
+func EventTypeJoinHandler(event *linebot.Event) {
+	msgText := "Hi~~~我是揪團啦\n"
+	msgText += GetUsageString()
 	msg := linebot.NewTextMessage(msgText)
 	if _, err := bot.ReplyMessage(event.ReplyToken, msg).Do(); err != nil {
 		log.Print(err)
@@ -80,6 +90,7 @@ func EventTypeMessage_TextMessageHander(event *linebot.Event) {
 
 	groupID := event.Source.GroupID
 	userID := event.Source.UserID
+	currentGroup := groups[groupID]
 
 	message.Text = strings.Replace(message.Text, "［", "[", 1)
 	message.Text = strings.Replace(message.Text, "］", "]", 1)
@@ -92,55 +103,55 @@ func EventTypeMessage_TextMessageHander(event *linebot.Event) {
 
 	switch command.(type) {
 	case *buy.OpenNewBuyLaCommand:
-		if groups[groupID].IsOpening {
+		if currentGroup.IsOpening {
 			msg = linebot.NewTextMessage("已經在開了喔~!")
 		} else {
 			c := command.(*buy.OpenNewBuyLaCommand)
 			if c.ShopName != "" {
-				groups[groupID].Store = c.ShopName
-				groups[groupID].IsOpening = true
-				groups[groupID].Records = buy.NewRecords()
-				msg = linebot.NewTextMessage("開團啦~~!!!!!\n這次是 " + groups[groupID].Store + " 喔\n\n----------以下開放下單----------\n ")
-				log.Println("IsOpening = ", groups[groupID].IsOpening)
+				currentGroup.Store = c.ShopName
+				currentGroup.IsOpening = true
+				currentGroup.Records = buy.NewRecords()
+				msg = linebot.NewTextMessage("開團啦~~!!!!!\n這次是 " + currentGroup.Store + " 喔\n\n----------以下開放下單----------\n ")
+				log.Println("IsOpening = ", currentGroup.IsOpening)
 			} else {
 				msg = linebot.NewTextMessage("開團的時候要告訴大家要訂哪一間!!\n")
 			}
 		}
 	case *buy.CloseBuyLaCommand:
-		if groups[groupID].IsOpening {
-			groups[groupID].IsOpening = false
-			msg = linebot.NewTextMessage("結單啦!!!!! \n" + groups[groupID].String())
-			log.Println("IsOpening = ", groups[groupID].IsOpening)
+		if currentGroup.IsOpening {
+			currentGroup.IsOpening = false
+			msg = linebot.NewTextMessage("結單啦!!!!! \n" + currentGroup.String())
+			log.Println("IsOpening = ", currentGroup.IsOpening)
 		} else {
 			msg = linebot.NewTextMessage("現在還沒有開始揪團~\n 大家都在等你開喔~!! XD")
 		}
 	case *buy.WantCommand:
-		if groups[groupID].IsOpening {
+		if currentGroup.IsOpening {
 			c := command.(*buy.WantCommand)
 			res, err := bot.GetGroupMemberProfile(groupID, userID).Do()
 			if err != nil {
 				log.Println("GetProfile err:", err)
 			}
-			msg = linebot.NewTextMessage("好喔~! " + groups[groupID].AddUserGoods(userID, res.DisplayName, c.Goods))
+			msg = linebot.NewTextMessage("好喔~! " + currentGroup.AddUserGoods(userID, res.DisplayName, c.Goods))
 		} else {
 			msg = linebot.NewTextMessage("前一次揪團已結單\n等你開新團啦!")
 		}
 	case *buy.ShowRecordCommand:
 		msgText := "熱騰騰的明細出來啦~~\n"
-		msgText += groups[groupID].String()
+		msgText += currentGroup.String()
 		msg = linebot.NewTextMessage(msgText)
 	case *buy.HelpCommand:
 		msg = linebot.NewTextMessage(GetUsageString())
 	case *buy.MeTooCommand:
-		if groups[groupID].IsOpening {
+		if currentGroup.IsOpening {
 			c := command.(*buy.MeTooCommand)
-			record := groups[groupID].GetRecord(c.TargetName)
+			record := currentGroup.GetRecord(c.TargetName)
 			if record != nil && record.Goods != "" {
 				res, err := bot.GetGroupMemberProfile(groupID, userID).Do()
 				if err != nil {
 					log.Println("GetProfile err:", err)
 				}
-				msg = linebot.NewTextMessage("好喔~! " + groups[groupID].AddUserGoods(userID, res.DisplayName, record.Goods))
+				msg = linebot.NewTextMessage("好喔~! " + currentGroup.AddUserGoods(userID, res.DisplayName, record.Goods))
 			} else {
 				msg = linebot.NewTextMessage(c.TargetName + " 還沒有訂喔!!!")
 			}
@@ -184,9 +195,9 @@ func callbackHandler(w http.ResponseWriter, r *http.Request) {
 
 		switch event.Type {
 		case linebot.EventTypeMemberJoined:
-			EventTypeJoinHandler(event)
-		case linebot.EventTypeJoin:
 			EventTypeMemberJoinedHandler(event)
+		case linebot.EventTypeJoin:
+			EventTypeJoinHandler(event)
 		case linebot.EventTypeMessage:
 			switch event.Message.(type) {
 			case *linebot.TextMessage:
