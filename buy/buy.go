@@ -1,6 +1,7 @@
 package buy
 
 import (
+	"log"
 	"strings"
 )
 
@@ -66,4 +67,10 @@ func (g *Group) AddUserGoods(userID, displayName, goods string) string {
 	g.Records[userID] = record
 
 	return g.Records[userID].UserName + " 要\n" + goods
+}
+
+func (g *Group) RemoveUserGoods(userID string) {
+	g.Records[userID] = nil
+	delete(g.Records, userID)
+	log.Println("Delete")
 }

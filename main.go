@@ -140,6 +140,14 @@ func EventTypeMessage_TextMessageHander(event *linebot.Event) {
 		msgText := "熱騰騰的明細出來啦~~\n"
 		msgText += currentGroup.String()
 		msg = linebot.NewTextMessage(msgText)
+	case *buy.CancelCommand:
+		if currentGroup.IsOpening {
+			record := currentGroup.Records[userID]
+			msg = linebot.NewTextMessage("Okay~" + record.UserName + " 的\n" + record.Goods + "已經取消了")
+			currentGroup.RemoveUserGoods(userID)
+		} else {
+			msg = linebot.NewTextMessage("目前還沒有開團喔")
+		}
 	case *buy.HelpCommand:
 		msg = linebot.NewTextMessage(GetUsageString())
 	case *buy.MeTooCommand:

@@ -2,6 +2,7 @@ package buy
 
 import (
 	"errors"
+	"log"
 	"strings"
 )
 
@@ -15,6 +16,7 @@ const (
 	CommandTypeMeToo_v1     CommandType = "咪兔"
 	CommandTypeMeToo_v2     CommandType = "+1"
 	CommandTypeHelp         CommandType = "說明"
+	CommandTypeCancel       CommandType = "我不要了"
 	CommandTypeRDDebug      CommandType = "叫你們 RD 出來滴霸格!!!"
 )
 
@@ -28,6 +30,7 @@ type CloseBuyLaCommand struct{ UserID string }
 type ShowRecordCommand struct{ UserID string }
 type MeTooCommand struct{ UserID, TargetName string }
 type HelpCommand struct{ UserID string }
+type CancelCommand struct{ UserID string }
 type RDDebugCommand struct{ UserID string }
 
 func NewOpenNewBuyLaCommand(userID, shop string) Command {
@@ -54,6 +57,10 @@ func NewHelpCommand(userID string) Command {
 	return &HelpCommand{UserID: userID}
 }
 
+func NewCancelCommand(userID string) Command {
+	return &CancelCommand{UserID: userID}
+}
+
 func NewRDDebugCommand(userID string) Command {
 	return &RDDebugCommand{UserID: userID}
 }
@@ -76,6 +83,10 @@ func ParseCommand(userID, message string) (command Command, err error) {
 	keyword := CommandType(strings.TrimSpace(token[0][3]))
 	others := strings.TrimSpace(token[0][4])
 
+	log.Println("mentionName", mentionName)
+	log.Println("keyword", keyword)
+	log.Println("others", others)
+
 	switch keyword {
 	case CommandTypeOpenNewBuyLa:
 		command = NewOpenNewBuyLaCommand(userID, others)
@@ -91,6 +102,8 @@ func ParseCommand(userID, message string) (command Command, err error) {
 		command = NewMeTooCommand(userID, mentionName)
 	case CommandTypeHelp:
 		command = NewHelpCommand(userID)
+	case CommandTypeCancel:
+		command = NewCancelCommand(userID)
 	case CommandTypeRDDebug:
 		command = NewRDDebugCommand(userID)
 	default:
@@ -105,4 +118,5 @@ func (c *CloseBuyLaCommand) Command()   {}
 func (c *ShowRecordCommand) Command()   {}
 func (c *MeTooCommand) Command()        {}
 func (c *HelpCommand) Command()         {}
+func (c *CancelCommand) Command()       {}
 func (c *RDDebugCommand) Command()      {}
