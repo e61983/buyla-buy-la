@@ -37,6 +37,11 @@ func Test_ParseCommand_SpaceTest(t *testing.T) {
 			Message: "[說明]",
 			Want:    &HelpCommand{UserID: "TESTER"},
 		},
+		{
+			UserID:  "TESTER",
+			Message: "[加訂] FOO",
+			Want:    &AttchCommand{UserID: "TESTER", Goods: "FOO"},
+		},
 	}
 
 	for i, tc := range testCases {

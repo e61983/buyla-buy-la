@@ -57,6 +57,10 @@ func Test_Regexp_Get_Command(t *testing.T) {
 			Want:    RegexpExpect{ItemsNumber: 0},
 		},
 		{
+			Message: "   [加訂]",
+			Want:    RegexpExpect{ItemsNumber: 1, TokenIndex: 3, Token: "加訂"},
+		},
+		{
 			Message: "     ",
 			Want:    RegexpExpect{ItemsNumber: 0},
 		},

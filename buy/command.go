@@ -17,6 +17,7 @@ const (
 	CommandTypeMeToo_v2     CommandType = "+1"
 	CommandTypeHelp         CommandType = "說明"
 	CommandTypeCancel       CommandType = "我不要了"
+	CommandTypeAttach       CommandType = "加訂"
 	CommandTypeRDDebug      CommandType = "叫你們 RD 出來滴霸格!!!"
 )
 
@@ -31,6 +32,7 @@ type ShowRecordCommand struct{ UserID string }
 type MeTooCommand struct{ UserID, TargetName string }
 type HelpCommand struct{ UserID string }
 type CancelCommand struct{ UserID string }
+type AttchCommand struct{ UserID, Goods string }
 type RDDebugCommand struct{ UserID string }
 
 func NewOpenNewBuyLaCommand(userID, shop string) Command {
@@ -59,6 +61,10 @@ func NewHelpCommand(userID string) Command {
 
 func NewCancelCommand(userID string) Command {
 	return &CancelCommand{UserID: userID}
+}
+
+func NewAttchCommand(userID, goods string) Command {
+	return &AttchCommand{UserID: userID, Goods: goods}
 }
 
 func NewRDDebugCommand(userID string) Command {
@@ -102,6 +108,8 @@ func ParseCommand(userID, message string) (command Command, err error) {
 		command = NewMeTooCommand(userID, mentionName)
 	case CommandTypeHelp:
 		command = NewHelpCommand(userID)
+	case CommandTypeAttach:
+		command = NewAttchCommand(userID, others)
 	case CommandTypeCancel:
 		command = NewCancelCommand(userID)
 	case CommandTypeRDDebug:
@@ -120,3 +128,4 @@ func (c *MeTooCommand) Command()        {}
 func (c *HelpCommand) Command()         {}
 func (c *CancelCommand) Command()       {}
 func (c *RDDebugCommand) Command()      {}
+func (c *AttchCommand) Command()        {}

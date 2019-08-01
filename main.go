@@ -150,6 +150,38 @@ func EventTypeMessage_TextMessageHander(event *linebot.Event) {
 		}
 	case *buy.HelpCommand:
 		msg = linebot.NewTextMessage(GetUsageString())
+	case *buy.AttchCommand:
+		if currentGroup.IsOpening {
+			c := command.(*buy.AttchCommand)
+			record := currentGroup.Records[userID]
+			subCommand, err := buy.ParseCommand(userID, c.Goods)
+			if err == nil {
+				if sc, ok := subCommand.(*buy.MeTooCommand); ok {
+					targetRecord := currentGroup.GetRecord(sc.TargetName)
+					if targetRecord != nil && targetRecord.Goods != "" {
+						res, err := bot.GetGroupMemberProfile(groupID, userID).Do()
+						if err != nil {
+							log.Println("GetProfile err:", err)
+						}
+						msg = linebot.NewTextMessage("好喔~! " + currentGroup.AddUserGoods(userID, res.DisplayName, record.Goods+"\n"+targetRecord.Goods))
+					} else {
+						msg = linebot.NewTextMessage(sc.TargetName + " 還沒有訂喔!!!")
+					}
+				}
+			} else {
+				if record == nil {
+					res, err := bot.GetGroupMemberProfile(groupID, userID).Do()
+					if err != nil {
+						log.Println("GetProfile err:", err)
+					}
+					msg = linebot.NewTextMessage("好喔~! " + currentGroup.AddUserGoods(userID, res.DisplayName, c.Goods))
+				} else {
+					msg = linebot.NewTextMessage("好喔~! " + currentGroup.AddUserGoods(userID, record.UserName, record.Goods+"\n"+c.Goods))
+				}
+			}
+		} else {
+			msg = linebot.NewTextMessage("前一次揪團已結單\n等你開新團啦!")
+		}
 	case *buy.MeTooCommand:
 		if currentGroup.IsOpening {
 			c := command.(*buy.MeTooCommand)
