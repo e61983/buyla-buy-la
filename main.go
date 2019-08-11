@@ -47,6 +47,8 @@ func GetUsageString() string {
 	msgText := "可以試著用下面的幾個關鍵字來揪團喔~\n"
 	msgText += "- [開團]XXX : \n    告訴大家有新的揪團! 是要訂 XXX\n"
 	msgText += "- [我要]xxx: \n    xxx 是你想訂的東西喔!\n"
+	msgText += "- [我不要了]: \n    取消你原本相訂的東西\n"
+	msgText += "- [加訂]xxx: \n    xxx 是你想加訂的東西!\n"
 	msgText += "- [結單]: \n    就是告訴大家下回請早的意思啦~\n"
 	msgText += "- [明細]: \n    看看大家訂了什麼\n"
 	msgText += "- @XXX[咪兔]: \n    跟XXX 訂一樣的\n"
