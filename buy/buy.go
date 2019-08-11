@@ -2,7 +2,9 @@ package buy
 
 import (
 	"log"
+	"net/http"
 	"strings"
+	"time"
 )
 
 type Group struct {
@@ -73,4 +75,43 @@ func (g *Group) RemoveUserGoods(userID string) {
 	g.Records[userID] = nil
 	delete(g.Records, userID)
 	log.Println("Delete")
+}
+
+func SelfPing(url string) chan bool {
+	log.Println("Enable self ping:" + url)
+	return SetInterval(func() {
+		resp, err := http.Get(url)
+		log.Println("ping: Sending heartbeat to " + url)
+		if err != nil {
+			log.Printf("heroku-self-ping: Sending heartbeat error %s", err)
+		}
+		defer resp.Body.Close()
+	}, 300000, false)
+}
+
+func SetInterval(doFunc func(), milliseconds int, async bool) chan bool {
+
+	interval := time.Duration(milliseconds) * time.Millisecond
+
+	ticker := time.NewTicker(interval)
+	clear := make(chan bool)
+
+	go func() {
+		for {
+			select {
+			case <-ticker.C:
+				if async {
+					go doFunc()
+				} else {
+					doFunc()
+				}
+			case <-clear:
+				log.Println("Disable self ping")
+				ticker.Stop()
+				return
+			}
+		}
+	}()
+	return clear
+
 }

@@ -25,6 +25,9 @@ import (
 
 var bot *linebot.Client
 var groups map[string]*buy.Group
+var selfPing bool
+var appName string
+var selfPingFinish chan bool
 
 func main() {
 	var err error
@@ -37,6 +40,10 @@ func main() {
 
 	port := os.Getenv("PORT")
 	addr := fmt.Sprintf(":%s", port)
+	appName = os.Getenv("HEROKU_APP_NAME")
+
+	log.Println(appName)
+	selfPing = false
 
 	groups = buy.NewGroups()
 
@@ -118,12 +125,22 @@ func EventTypeMessage_TextMessageHander(event *linebot.Event) {
 			} else {
 				msg = linebot.NewTextMessage("開團的時候要告訴大家要訂哪一間!!\n")
 			}
+			if !selfPing {
+				selfPingFinish = buy.SelfPing("https://" + appName + ".herokuapp.com")
+				selfPing = true
+			}
 		}
 	case *buy.CloseBuyLaCommand:
 		if currentGroup.IsOpening {
 			currentGroup.IsOpening = false
 			msg = linebot.NewTextMessage("結單啦!!!!! \n" + currentGroup.String())
 			log.Println("IsOpening = ", currentGroup.IsOpening)
+
+			if selfPing {
+				selfPingFinish <- true
+				selfPing = false
+			}
+
 		} else {
 			msg = linebot.NewTextMessage("現在還沒有開始揪團~\n 大家都在等你開喔~!! XD")
 		}
