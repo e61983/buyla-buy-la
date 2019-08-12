@@ -101,8 +101,8 @@ func EventTypeMessage_TextMessageHander(event *linebot.Event) {
 	userID := event.Source.UserID
 	currentGroup := groups[groupID]
 
-	message.Text = strings.Replace(message.Text, "［", "[", 1)
-	message.Text = strings.Replace(message.Text, "］", "]", 1)
+	message.Text = strings.ReplaceAll(message.Text, "［", "[")
+	message.Text = strings.ReplaceAll(message.Text, "］", "]")
 
 	command, err := buy.ParseCommand(userID, message.Text)
 
