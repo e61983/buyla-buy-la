@@ -140,9 +140,22 @@ func EventTypeMessage_TextMessageHander(event *linebot.Event) {
 			msg = linebot.NewTextMessage("結單啦!!!!! \n" + currentGroup.String())
 			log.Println("IsOpening = ", currentGroup.IsOpening)
 
+			isOpening := false
 			if selfPing {
-				selfPingFinish <- true
-				selfPing = false
+				for _, g := range groups {
+					if g != currentGroup {
+						if g.IsOpening {
+							isOpening = true
+							log.Println("Others Group is Opening")
+							break
+						}
+					}
+				}
+
+				if !isOpening {
+					selfPingFinish <- true
+					selfPing = false
+				}
 			}
 
 		} else {
