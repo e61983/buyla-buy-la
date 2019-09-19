@@ -120,10 +120,14 @@ func EventTypeMessage_TextMessageHander(event *linebot.Event) {
 				currentGroup.Store = c.ShopName
 				currentGroup.IsOpening = true
 				currentGroup.Records = buy.NewRecords()
-				msg = linebot.NewTextMessage("開團啦~~!!!!!\n這次是 " + currentGroup.Store + " 喔\n\n----------以下開放下單----------\n ")
+				msg = linebot.NewTextMessage("開團啦~~!!!!!\n這次是 " + currentGroup.Store + " 喔\n\n------以下開放下單------\n ")
 				log.Println("IsOpening = ", currentGroup.IsOpening)
 			} else {
-				msg = linebot.NewTextMessage("開團的時候要告訴大家要訂哪一間!!\n")
+				currentGroup.Store = c.ShopName
+				currentGroup.IsOpening = true
+				currentGroup.Records = buy.NewRecords()
+				msg = linebot.NewTextMessage("開團啦~~!!!!!\n\n------以下開放下單------\n ")
+				log.Println("IsOpening = ", currentGroup.IsOpening)
 			}
 			if !selfPing {
 				selfPingFinish = buy.SelfPing("https://" + appName + ".herokuapp.com")
