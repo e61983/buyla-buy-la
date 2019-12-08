@@ -1,284 +1,547 @@
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
-
 package main
 
 import (
-	"fmt"
-	"github.com/e61983/buyla-buy-la/buy"
+	"github.com/line/line-bot-sdk-go/linebot"
 	"log"
 	"net/http"
 	"os"
-	"strings"
-
-	"github.com/line/line-bot-sdk-go/linebot"
 )
 
-var bot *linebot.Client
-var groups map[string]*buy.Group
-var selfPing bool
-var appName string
-var selfPingFinish chan bool
+type Buyla struct {
+	bot     *linebot.Client
+	baseUrl string
+}
 
-func main() {
-	var err error
-	bot, err = linebot.New(os.Getenv("ChannelSecret"), os.Getenv("ChannelAccessToken"))
+func NewBuyla(channelSecret, channelToken, baseUrl string) (*Buyla, error) {
+	bot, err := linebot.New(channelSecret, channelToken)
 	if err != nil {
-		log.Fatal("Line Bot", err)
+		return nil, err
 	}
-
-	http.HandleFunc("/callback", callbackHandler)
-
-	port := os.Getenv("PORT")
-	addr := fmt.Sprintf(":%s", port)
-	appName = os.Getenv("HEROKU_APP_NAME")
-
-	log.Println(appName)
-	selfPing = false
-
-	groups = buy.NewGroups()
-
-	http.ListenAndServe(addr, nil)
+	return &Buyla{bot: bot, baseUrl: baseUrl}, nil
+}
+func (this *Buyla) replyText(replyToken, text string) error {
+	if _, err := this.bot.ReplyMessage(
+		replyToken,
+		linebot.NewTextMessage(text),
+	).Do(); err != nil {
+		return err
+	}
+	return nil
 }
 
-func GetUsageString() string {
-	msgText := "可以試著用下面的幾個關鍵字來揪團喔~\n"
-	msgText += "- [開團]XXX : \n    告訴大家有新的揪團! 是要訂 XXX\n"
-	msgText += "- [我要]xxx: \n    xxx 是你想訂的東西喔!\n"
-	msgText += "- [我不要了]: \n    取消你原本相訂的東西\n"
-	msgText += "- [加訂]xxx: \n    xxx 是你想加訂的東西!\n"
-	msgText += "- [結單]: \n    就是告訴大家下回請早的意思啦~\n"
-	msgText += "- [明細]: \n    看看大家訂了什麼\n"
-	msgText += "- @XXX[咪兔]: \n    跟XXX 訂一樣的\n"
-	msgText += "- [說明]: \n    跟大家再自我介紹一次\n"
-	msgText += "- 叫你們 RD 出來滴霸格!!!: \n    沒什麼作用~只是發洩一下\n"
-
-	return msgText
-}
-
-func EventTypeMemberJoinedHandler(event *linebot.Event) {
-	var displayName string
-	groupID := event.Source.GroupID
-	userID := event.Source.UserID
-	res, err := bot.GetGroupMemberProfile(groupID, userID).Do()
-	if err != nil {
-		log.Println("GetProfile err:", err)
-	} else {
-		displayName = res.DisplayName
-	}
-	msgText := "Hi~~~" + displayName + "\n"
-	msgText += GetUsageString()
-	msg := linebot.NewTextMessage(msgText)
-	if _, err := bot.ReplyMessage(event.ReplyToken, msg).Do(); err != nil {
-		log.Print(err)
-	}
-}
-
-func EventTypeJoinHandler(event *linebot.Event) {
-	msgText := "Hi~~~我是揪團啦\n"
-	msgText += GetUsageString()
-	msg := linebot.NewTextMessage(msgText)
-	if _, err := bot.ReplyMessage(event.ReplyToken, msg).Do(); err != nil {
-		log.Print(err)
-	}
-}
-
-func EventTypeMessage_TextMessageHander(event *linebot.Event) {
-
-	message := event.Message.(*linebot.TextMessage)
-	var msg linebot.SendingMessage
-
-	groupID := event.Source.GroupID
-	userID := event.Source.UserID
-	currentGroup := groups[groupID]
-
-	message.Text = strings.ReplaceAll(message.Text, "［", "[")
-	message.Text = strings.ReplaceAll(message.Text, "］", "]")
-
-	command, err := buy.ParseCommand(userID, message.Text)
-
-	if err != nil {
-		return
-	}
-
-	switch command.(type) {
-	case *buy.OpenNewBuyLaCommand:
-		if currentGroup.IsOpening {
-			msg = linebot.NewTextMessage("已經在開了喔~!")
-		} else {
-			c := command.(*buy.OpenNewBuyLaCommand)
-			if c.ShopName != "" {
-				currentGroup.Store = c.ShopName
-				currentGroup.IsOpening = true
-				currentGroup.Records = buy.NewRecords()
-				msg = linebot.NewTextMessage("開團啦~~!!!!!\n這次是 " + currentGroup.Store + " 喔\n\n------以下開放下單------\n ")
-				log.Println("IsOpening = ", currentGroup.IsOpening)
-			} else {
-				currentGroup.Store = c.ShopName
-				currentGroup.IsOpening = true
-				currentGroup.Records = buy.NewRecords()
-				msg = linebot.NewTextMessage("開團啦~~!!!!!\n\n------以下開放下單------\n ")
-				log.Println("IsOpening = ", currentGroup.IsOpening)
-			}
-			if !selfPing {
-				selfPingFinish = buy.SelfPing("https://" + appName + ".herokuapp.com")
-				selfPing = true
-			}
-		}
-	case *buy.CloseBuyLaCommand:
-		if currentGroup.IsOpening {
-			currentGroup.IsOpening = false
-			msg = linebot.NewTextMessage("結單啦!!!!! \n" + currentGroup.String())
-			log.Println("IsOpening = ", currentGroup.IsOpening)
-
-			isOpening := false
-			if selfPing {
-				for _, g := range groups {
-					if g != currentGroup {
-						if g.IsOpening {
-							isOpening = true
-							log.Println("Others Group is Opening")
-							break
-						}
-					}
-				}
-
-				if !isOpening {
-					selfPingFinish <- true
-					selfPing = false
-				}
-			}
-
-		} else {
-			msg = linebot.NewTextMessage("現在還沒有開始揪團~\n 大家都在等你開喔~!! XD")
-		}
-	case *buy.WantCommand:
-		if currentGroup.IsOpening {
-			c := command.(*buy.WantCommand)
-			res, err := bot.GetGroupMemberProfile(groupID, userID).Do()
+func (this *Buyla) handleText(message *linebot.TextMessage, replyToken string, source *linebot.EventSource) error {
+	switch message.Text {
+	case "profile":
+		if source.UserID != "" {
+			profile, err := this.bot.GetProfile(source.UserID).Do()
 			if err != nil {
-				log.Println("GetProfile err:", err)
+				return this.replyText(replyToken, err.Error())
 			}
-			msg = linebot.NewTextMessage("好喔~! " + currentGroup.AddUserGoods(userID, res.DisplayName, c.Goods))
-		} else {
-			msg = linebot.NewTextMessage("前一次揪團已結單\n等你開新團啦!")
-		}
-	case *buy.ShowRecordCommand:
-		msgText := "熱騰騰的明細出來啦~~\n"
-		msgText += currentGroup.String()
-		msg = linebot.NewTextMessage(msgText)
-	case *buy.CancelCommand:
-		if currentGroup.IsOpening {
-			record := currentGroup.Records[userID]
-			msg = linebot.NewTextMessage("Okay~" + record.UserName + " 的\n" + record.Goods + "已經取消了")
-			currentGroup.RemoveUserGoods(userID)
-		} else {
-			msg = linebot.NewTextMessage("目前還沒有開團喔")
-		}
-	case *buy.HelpCommand:
-		msg = linebot.NewTextMessage(GetUsageString())
-	case *buy.AttchCommand:
-		if currentGroup.IsOpening {
-			c := command.(*buy.AttchCommand)
-			record := currentGroup.Records[userID]
-			subCommand, err := buy.ParseCommand(userID, c.Goods)
-			if err == nil {
-				if sc, ok := subCommand.(*buy.MeTooCommand); ok {
-					targetRecord := currentGroup.GetRecord(sc.TargetName)
-					if targetRecord != nil && targetRecord.Goods != "" {
-						res, err := bot.GetGroupMemberProfile(groupID, userID).Do()
-						if err != nil {
-							log.Println("GetProfile err:", err)
-						}
-						msg = linebot.NewTextMessage("好喔~! " + currentGroup.AddUserGoods(userID, res.DisplayName, record.Goods+"\n"+targetRecord.Goods))
-					} else {
-						msg = linebot.NewTextMessage(sc.TargetName + " 還沒有訂喔!!!")
-					}
-				}
-			} else {
-				if record == nil {
-					res, err := bot.GetGroupMemberProfile(groupID, userID).Do()
-					if err != nil {
-						log.Println("GetProfile err:", err)
-					}
-					msg = linebot.NewTextMessage("好喔~! " + currentGroup.AddUserGoods(userID, res.DisplayName, c.Goods))
-				} else {
-					msg = linebot.NewTextMessage("好喔~! " + currentGroup.AddUserGoods(userID, record.UserName, record.Goods+"\n"+c.Goods))
-				}
+			if _, err := this.bot.ReplyMessage(
+				replyToken,
+				linebot.NewTextMessage("Display name: "+profile.DisplayName),
+				linebot.NewTextMessage("Status message: "+profile.StatusMessage),
+			).Do(); err != nil {
+				return err
 			}
 		} else {
-			msg = linebot.NewTextMessage("前一次揪團已結單\n等你開新團啦!")
+			return this.replyText(replyToken, "Bot can't use profile API without user ID")
 		}
-	case *buy.MeTooCommand:
-		if currentGroup.IsOpening {
-			c := command.(*buy.MeTooCommand)
-			record := currentGroup.GetRecord(c.TargetName)
-			if record != nil && record.Goods != "" {
-				res, err := bot.GetGroupMemberProfile(groupID, userID).Do()
-				if err != nil {
-					log.Println("GetProfile err:", err)
-				}
-				msg = linebot.NewTextMessage("好喔~! " + currentGroup.AddUserGoods(userID, res.DisplayName, record.Goods))
-			} else {
-				msg = linebot.NewTextMessage(c.TargetName + " 還沒有訂喔!!!")
+	case "buttons":
+		imageURL := this.baseUrl + "/static/buttons/1040.jpg"
+		template := linebot.NewButtonsTemplate(
+			imageURL, "My button sample", "Hello, my button",
+			linebot.NewURIAction("Go to line.me", "https://line.me"),
+			linebot.NewPostbackAction("Say hello1", "hello こんにちは", "", "hello こんにちは"),
+			linebot.NewPostbackAction("言 hello2", "hello こんにちは", "hello こんにちは", ""),
+			linebot.NewMessageAction("Say message", "Rice=米"),
+		)
+		if _, err := this.bot.ReplyMessage(
+			replyToken,
+			linebot.NewTemplateMessage("Buttons alt text", template),
+		).Do(); err != nil {
+			return err
+		}
+	case "confirm":
+		template := linebot.NewConfirmTemplate(
+			"Do it?",
+			linebot.NewMessageAction("Yes", "Yes!"),
+			linebot.NewMessageAction("No", "No!"),
+		)
+		if _, err := this.bot.ReplyMessage(
+			replyToken,
+			linebot.NewTemplateMessage("Confirm alt text", template),
+		).Do(); err != nil {
+			return err
+		}
+	case "carousel":
+		imageURL := this.baseUrl + "/static/buttons/1040.jpg"
+		template := linebot.NewCarouselTemplate(
+			linebot.NewCarouselColumn(
+				imageURL, "hoge", "fuga",
+				linebot.NewURIAction("Go to line.me", "https://line.me"),
+				linebot.NewPostbackAction("Say hello1", "hello こんにちは", "", ""),
+			),
+			linebot.NewCarouselColumn(
+				imageURL, "hoge", "fuga",
+				linebot.NewPostbackAction("言 hello2", "hello こんにちは", "hello こんにちは", ""),
+				linebot.NewMessageAction("Say message", "Rice=米"),
+			),
+		)
+		if _, err := this.bot.ReplyMessage(
+			replyToken,
+			linebot.NewTemplateMessage("Carousel alt text", template),
+		).Do(); err != nil {
+			return err
+		}
+	case "image carousel":
+		imageURL := this.baseUrl + "/static/buttons/1040.jpg"
+		template := linebot.NewImageCarouselTemplate(
+			linebot.NewImageCarouselColumn(
+				imageURL,
+				linebot.NewURIAction("Go to LINE", "https://line.me"),
+			),
+			linebot.NewImageCarouselColumn(
+				imageURL,
+				linebot.NewPostbackAction("Say hello1", "hello こんにちは", "", ""),
+			),
+			linebot.NewImageCarouselColumn(
+				imageURL,
+				linebot.NewMessageAction("Say message", "Rice=米"),
+			),
+			linebot.NewImageCarouselColumn(
+				imageURL,
+				linebot.NewDatetimePickerAction("datetime", "DATETIME", "datetime", "", "", ""),
+			),
+		)
+		if _, err := this.bot.ReplyMessage(
+			replyToken,
+			linebot.NewTemplateMessage("Image carousel alt text", template),
+		).Do(); err != nil {
+			return err
+		}
+	case "datetime":
+		template := linebot.NewButtonsTemplate(
+			"", "", "Select date / time !",
+			linebot.NewDatetimePickerAction("date", "DATE", "date", "", "", ""),
+			linebot.NewDatetimePickerAction("time", "TIME", "time", "", "", ""),
+			linebot.NewDatetimePickerAction("datetime", "DATETIME", "datetime", "", "", ""),
+		)
+		if _, err := this.bot.ReplyMessage(
+			replyToken,
+			linebot.NewTemplateMessage("Datetime pickers alt text", template),
+		).Do(); err != nil {
+			return err
+		}
+	case "flex":
+		// {
+		//   "type": "bubble",
+		//   "body": {
+		//     "type": "box",
+		//     "layout": "horizontal",
+		//     "contents": [
+		//       {
+		//         "type": "text",
+		//         "text": "Hello,"
+		//       },
+		//       {
+		//         "type": "text",
+		//         "text": "World!"
+		//       }
+		//     ]
+		//   }
+		// }
+		contents := &linebot.BubbleContainer{
+			Type: linebot.FlexContainerTypeBubble,
+			Body: &linebot.BoxComponent{
+				Type:   linebot.FlexComponentTypeBox,
+				Layout: linebot.FlexBoxLayoutTypeHorizontal,
+				Contents: []linebot.FlexComponent{
+					&linebot.TextComponent{
+						Type: linebot.FlexComponentTypeText,
+						Text: "Hello,",
+					},
+					&linebot.TextComponent{
+						Type: linebot.FlexComponentTypeText,
+						Text: "World!",
+					},
+				},
+			},
+		}
+		if _, err := this.bot.ReplyMessage(
+			replyToken,
+			linebot.NewFlexMessage("Flex message alt text", contents),
+		).Do(); err != nil {
+			return err
+		}
+	case "flex carousel":
+		// {
+		//   "type": "carousel",
+		//   "contents": [
+		//     {
+		//       "type": "bubble",
+		//       "body": {
+		//         "type": "box",
+		//         "layout": "vertical",
+		//         "contents": [
+		//           {
+		//             "type": "text",
+		//             "text": "First bubble"
+		//           }
+		//         ]
+		//       }
+		//     },
+		//     {
+		//       "type": "bubble",
+		//       "body": {
+		//         "type": "box",
+		//         "layout": "vertical",
+		//         "contents": [
+		//           {
+		//             "type": "text",
+		//             "text": "Second bubble"
+		//           }
+		//         ]
+		//       }
+		//     }
+		//   ]
+		// }
+		contents := &linebot.CarouselContainer{
+			Type: linebot.FlexContainerTypeCarousel,
+			Contents: []*linebot.BubbleContainer{
+				{
+					Type: linebot.FlexContainerTypeBubble,
+					Body: &linebot.BoxComponent{
+						Type:   linebot.FlexComponentTypeBox,
+						Layout: linebot.FlexBoxLayoutTypeVertical,
+						Contents: []linebot.FlexComponent{
+							&linebot.TextComponent{
+								Type: linebot.FlexComponentTypeText,
+								Text: "First bubble",
+							},
+						},
+					},
+				},
+				{
+					Type: linebot.FlexContainerTypeBubble,
+					Body: &linebot.BoxComponent{
+						Type:   linebot.FlexComponentTypeBox,
+						Layout: linebot.FlexBoxLayoutTypeVertical,
+						Contents: []linebot.FlexComponent{
+							&linebot.TextComponent{
+								Type: linebot.FlexComponentTypeText,
+								Text: "Second bubble",
+							},
+						},
+					},
+				},
+			},
+		}
+		if _, err := this.bot.ReplyMessage(
+			replyToken,
+			linebot.NewFlexMessage("Flex message alt text", contents),
+		).Do(); err != nil {
+			return err
+		}
+	case "flex json":
+		jsonString := `{
+  "type": "bubble",
+  "hero": {
+    "type": "image",
+    "url": "https://scdn.line-thiss.com/n/channel_devcenter/img/fx/01_1_cafe.png",
+    "size": "full",
+    "aspectRatio": "20:13",
+    "aspectMode": "cover",
+    "action": {
+      "type": "uri",
+      "uri": "http://linecorp.com/"
+    }
+  },
+  "body": {
+    "type": "box",
+    "layout": "vertical",
+    "contents": [
+      {
+        "type": "text",
+        "text": "Brown Cafe",
+        "weight": "bold",
+        "size": "xl"
+      },
+      {
+        "type": "box",
+        "layout": "baseline",
+        "margin": "md",
+        "contents": [
+          {
+            "type": "icon",
+            "size": "sm",
+            "url": "https://scdn.line-thiss.com/n/channel_devcenter/img/fx/review_gold_star_28.png"
+          },
+          {
+            "type": "icon",
+            "size": "sm",
+            "url": "https://scdn.line-thiss.com/n/channel_devcenter/img/fx/review_gold_star_28.png"
+          },
+          {
+            "type": "icon",
+            "size": "sm",
+            "url": "https://scdn.line-thiss.com/n/channel_devcenter/img/fx/review_gold_star_28.png"
+          },
+          {
+            "type": "icon",
+            "size": "sm",
+            "url": "https://scdn.line-thiss.com/n/channel_devcenter/img/fx/review_gold_star_28.png"
+          },
+          {
+            "type": "icon",
+            "size": "sm",
+            "url": "https://scdn.line-thiss.com/n/channel_devcenter/img/fx/review_gray_star_28.png"
+          },
+          {
+            "type": "text",
+            "text": "4.0",
+            "size": "sm",
+            "color": "#999999",
+            "margin": "md",
+            "flex": 0
+          }
+        ]
+      },
+      {
+        "type": "box",
+        "layout": "vertical",
+        "margin": "lg",
+        "spacing": "sm",
+        "contents": [
+          {
+            "type": "box",
+            "layout": "baseline",
+            "spacing": "sm",
+            "contents": [
+              {
+                "type": "text",
+                "text": "Place",
+                "color": "#aaaaaa",
+                "size": "sm",
+                "flex": 1
+              },
+              {
+                "type": "text",
+                "text": "Miraina Tower, 4-1-6 Shinjuku, Tokyo",
+                "wrap": true,
+                "color": "#666666",
+                "size": "sm",
+                "flex": 5
+              }
+            ]
+          },
+          {
+            "type": "box",
+            "layout": "baseline",
+            "spacing": "sm",
+            "contents": [
+              {
+                "type": "text",
+                "text": "Time",
+                "color": "#aaaaaa",
+                "size": "sm",
+                "flex": 1
+              },
+              {
+                "type": "text",
+                "text": "10:00 - 23:00",
+                "wrap": true,
+                "color": "#666666",
+                "size": "sm",
+                "flex": 5
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "footer": {
+    "type": "box",
+    "layout": "vertical",
+    "spacing": "sm",
+    "contents": [
+      {
+        "type": "button",
+        "style": "link",
+        "height": "sm",
+        "action": {
+          "type": "uri",
+          "label": "CALL",
+          "uri": "https://linecorp.com"
+        }
+      },
+      {
+        "type": "button",
+        "style": "link",
+        "height": "sm",
+        "action": {
+          "type": "uri",
+          "label": "WEBSITE",
+          "uri": "https://linecorp.com",
+          "altUri": {
+            "desktop": "https://line.me/ja/download"
+          }
+        }
+      },
+      {
+        "type": "spacer",
+        "size": "sm"
+      }
+    ],
+    "flex": 0
+  }
+}`
+		contents, err := linebot.UnmarshalFlexMessageJSON([]byte(jsonString))
+		if err != nil {
+			return err
+		}
+		if _, err := this.bot.ReplyMessage(
+			replyToken,
+			linebot.NewFlexMessage("Flex message alt text", contents),
+		).Do(); err != nil {
+			return err
+		}
+	case "imagemap":
+		if _, err := this.bot.ReplyMessage(
+			replyToken,
+			linebot.NewImagemapMessage(
+				this.baseUrl+"/static/rich",
+				"Imagemap alt text",
+				linebot.ImagemapBaseSize{Width: 1040, Height: 1040},
+				linebot.NewMessageImagemapAction("URANAI!", linebot.ImagemapArea{X: 520, Y: 520, Width: 520, Height: 520}),
+			),
+		).Do(); err != nil {
+			return err
+		}
+	case "imagemap video":
+		if _, err := this.bot.ReplyMessage(
+			replyToken,
+			linebot.NewImagemapMessage(
+				this.baseUrl+"/static/rich",
+				"Imagemap with video alt text",
+				linebot.ImagemapBaseSize{Width: 1040, Height: 1040},
+				linebot.NewMessageImagemapAction("URANAI!", linebot.ImagemapArea{X: 520, Y: 520, Width: 520, Height: 520}),
+			).WithVideo(&linebot.ImagemapVideo{
+				OriginalContentURL: this.baseUrl + "/static/imagemap/video.mp4",
+				PreviewImageURL:    this.baseUrl + "/static/imagemap/preview.jpg",
+				Area:               linebot.ImagemapArea{X: 280, Y: 385, Width: 480, Height: 270},
+				ExternalLink:       &linebot.ImagemapVideoExternalLink{LinkURI: "https://line.me", Label: "LINE"},
+			}),
+		).Do(); err != nil {
+			return err
+		}
+	case "quick":
+		if _, err := this.bot.ReplyMessage(
+			replyToken,
+			linebot.NewTextMessage("Select your favorite food category or send me your location!").
+				WithQuickReplies(linebot.NewQuickReplyItems(
+					linebot.NewQuickReplyButton(
+						this.baseUrl+"/static/quick/sushi.png",
+						linebot.NewMessageAction("Sushi", "Sushi")),
+					linebot.NewQuickReplyButton(
+						this.baseUrl+"/static/quick/tempura.png",
+						linebot.NewMessageAction("Tempura", "Tempura")),
+					linebot.NewQuickReplyButton(
+						"",
+						linebot.NewLocationAction("Send location")),
+				)),
+		).Do(); err != nil {
+			return err
+		}
+	case "bye":
+		switch source.Type {
+		case linebot.EventSourceTypeUser:
+			return this.replyText(replyToken, "Bot can't leave from 1:1 chat")
+		case linebot.EventSourceTypeGroup:
+			if err := this.replyText(replyToken, "Leaving group"); err != nil {
+				return err
 			}
-		} else {
-			msg = linebot.NewTextMessage("前一次揪團已結單\n等你開新團啦!")
+			if _, err := this.bot.LeaveGroup(source.GroupID).Do(); err != nil {
+				return this.replyText(replyToken, err.Error())
+			}
+		case linebot.EventSourceTypeRoom:
+			if err := this.replyText(replyToken, "Leaving room"); err != nil {
+				return err
+			}
+			if _, err := this.bot.LeaveRoom(source.RoomID).Do(); err != nil {
+				return this.replyText(replyToken, err.Error())
+			}
 		}
-	case *buy.RDDebugCommand:
-		msg = linebot.NewStickerMessage("11537", "52002739")
 	default:
+		//log.Printf("Echo message to %s: %s", replyToken, message.Text)
+		//if err := this.replyText(replyToken, message.Text); err != nil {
+		//return err
+		//}
 	}
-
-	if msg != nil {
-		if _, err := bot.ReplyMessage(event.ReplyToken, msg).Do(); err != nil {
-			log.Print(err)
-		}
-	}
+	return nil
 }
 
-func callbackHandler(w http.ResponseWriter, r *http.Request) {
-
-	events, err := bot.ParseRequest(r)
-
+func (this *Buyla) Callback(w http.ResponseWriter, r *http.Request) {
+	events, err := this.bot.ParseRequest(r)
 	if err != nil {
 		if err == linebot.ErrInvalidSignature {
 			w.WriteHeader(400)
 		} else {
 			w.WriteHeader(500)
 		}
+		log.Print(err)
 		return
 	}
 
 	for _, event := range events {
-
-		groupID := event.Source.GroupID
-		if groupID == "" {
-			return
-		} else if _, ok := groups[groupID]; !ok {
-			log.Println("Create a New Group")
-			groups[groupID] = buy.NewGroup(groupID)
-		}
-
+		log.Printf("event: %v", event)
 		switch event.Type {
-		case linebot.EventTypeMemberJoined:
-			EventTypeMemberJoinedHandler(event)
-		case linebot.EventTypeJoin:
-			EventTypeJoinHandler(event)
 		case linebot.EventTypeMessage:
-			switch event.Message.(type) {
+			switch message := event.Message.(type) {
 			case *linebot.TextMessage:
-				EventTypeMessage_TextMessageHander(event)
+				if err := this.handleText(message, event.ReplyToken, event.Source); err != nil {
+					log.Print(err)
+				}
+			case *linebot.ImageMessage:
+			case *linebot.VideoMessage:
+			case *linebot.AudioMessage:
+			case *linebot.FileMessage:
+			case *linebot.LocationMessage:
+			case *linebot.StickerMessage:
+			default:
 			}
+		case linebot.EventTypeFollow:
+		case linebot.EventTypeUnfollow:
+		case linebot.EventTypeJoin:
+		case linebot.EventTypeLeave:
+			log.Printf("Left: %v", event)
+		case linebot.EventTypePostback:
+		case linebot.EventTypeBeacon:
+		default:
+			log.Printf("Unknown event: %v", event)
 		}
+	}
+}
+
+func main() {
+	app, err := NewBuyla(
+		os.Getenv("ChannelSecret"),
+		os.Getenv("ChannelAccessToken"),
+		os.Getenv("TEST_URL"),
+	)
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	staticFileServer := http.FileServer(http.Dir("static"))
+	http.HandleFunc("/static/", http.StripPrefix("/static/", staticFileServer).ServeHTTP)
+
+	log.Println("Listen", os.Getenv("TEST_URL"), os.Getenv("PORT"))
+
+	http.HandleFunc("/callback", app.Callback)
+	if err := http.ListenAndServe(":"+os.Getenv("PORT"), nil); err != nil {
+		log.Fatal(err)
 	}
 }
