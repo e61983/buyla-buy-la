@@ -3,8 +3,8 @@ package main
 import (
 	"github.com/line/line-bot-sdk-go/linebot"
 	"io"
-	"io/ioutil"
 	"log"
+	"math/rand"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -524,8 +524,22 @@ func (this *Buyla) handleHeavyContent(messageID string, callback func(*os.File) 
 	return callback(originalConent)
 }
 
+const letterBytes = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
+
+func RandStringBytes(n int) string {
+	b := make([]byte, n)
+	for i := range b {
+		b[i] = letterBytes[rand.Intn(len(letterBytes))]
+	}
+	return string(b)
+}
+
 func (this *Buyla) saveContent(content io.ReadCloser) (*os.File, error) {
-	file, err := ioutil.TempFile(this.downloadDir, "")
+	name := filepath.Join(this.downloadDir, RandStringBytes(64))
+	file, err := os.Create(name)
+	if err != nil {
+		return nil, err
+	}
 	if err != nil {
 		return nil, err
 	}
