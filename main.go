@@ -2,14 +2,18 @@ package main
 
 import (
 	"github.com/line/line-bot-sdk-go/linebot"
+	"io"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
+	"path/filepath"
 )
 
 type Buyla struct {
-	bot     *linebot.Client
-	baseUrl string
+	bot         *linebot.Client
+	baseUrl     string
+	downloadDir string
 }
 
 func NewBuyla(channelSecret, channelToken, baseUrl string) (*Buyla, error) {
@@ -17,7 +21,17 @@ func NewBuyla(channelSecret, channelToken, baseUrl string) (*Buyla, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &Buyla{bot: bot, baseUrl: baseUrl}, nil
+
+	downloadDir := filepath.Join(filepath.Dir(os.Args[0]), "dl")
+	_, err = os.Stat(downloadDir)
+	if err != nil {
+		if err := os.Mkdir(downloadDir, 0777); err != nil {
+			return nil, err
+		}
+	}
+	log.Println("create", downloadDir)
+
+	return &Buyla{bot: bot, baseUrl: baseUrl, downloadDir: downloadDir}, nil
 }
 func (this *Buyla) replyText(replyToken, text string) error {
 	if _, err := this.bot.ReplyMessage(
@@ -482,6 +496,49 @@ func (this *Buyla) handleText(message *linebot.TextMessage, replyToken string, s
 	return nil
 }
 
+func (this *Buyla) handleImage(message *linebot.ImageMessage, replyToken string) error {
+	return this.handleHeavyContent(message.ID, func(content *os.File) error {
+		contentUrl := this.baseUrl + "/downloaded/" + filepath.Base(content.Name())
+		if _, err := this.bot.ReplyMessage(
+			replyToken,
+			linebot.NewTextMessage(contentUrl),
+			//linebot.NewImageMessage(contentUrl),
+		).Do(); err != nil {
+			return err
+		}
+		return nil
+	})
+}
+
+func (this *Buyla) handleHeavyContent(messageID string, callback func(*os.File) error) error {
+	content, err := this.bot.GetMessageContent(messageID).Do()
+	if err != nil {
+		return err
+	}
+	defer content.Content.Close()
+	log.Printf("Got file: %s", content.ContentType)
+	originalConent, err := this.saveContent(content.Content)
+	if err != nil {
+		return err
+	}
+	return callback(originalConent)
+}
+
+func (this *Buyla) saveContent(content io.ReadCloser) (*os.File, error) {
+	file, err := ioutil.TempFile(this.downloadDir, "")
+	if err != nil {
+		return nil, err
+	}
+	defer file.Close()
+
+	_, err = io.Copy(file, content)
+	if err != nil {
+		return nil, err
+	}
+	log.Printf("Saved %s", file.Name())
+	return file, nil
+}
+
 func (this *Buyla) Callback(w http.ResponseWriter, r *http.Request) {
 	events, err := this.bot.ParseRequest(r)
 	if err != nil {
@@ -504,6 +561,9 @@ func (this *Buyla) Callback(w http.ResponseWriter, r *http.Request) {
 					log.Print(err)
 				}
 			case *linebot.ImageMessage:
+				if err := this.handleImage(message, event.ReplyToken); err != nil {
+					log.Print(err)
+				}
 			case *linebot.VideoMessage:
 			case *linebot.AudioMessage:
 			case *linebot.FileMessage:
@@ -537,6 +597,9 @@ func main() {
 
 	staticFileServer := http.FileServer(http.Dir("static"))
 	http.HandleFunc("/static/", http.StripPrefix("/static/", staticFileServer).ServeHTTP)
+
+	downloadFileServer := http.FileServer(http.Dir(app.downloadDir))
+	http.HandleFunc("/downloaded/", http.StripPrefix("/downloaded/", downloadFileServer).ServeHTTP)
 
 	log.Println("Listen", os.Getenv("TEST_URL"), os.Getenv("PORT"))
 
