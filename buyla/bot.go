@@ -34,11 +34,6 @@ func NewBot(channelSecret, channelToken, BaseUrl string, data *MetaData) (*Bot, 
 }
 
 func (this *Bot) replyMessage(replyToken string, messages ...linebot.SendingMessage) *linebot.ReplyMessageCall {
-	messages[len(messages)-1].WithQuickReplies(linebot.NewQuickReplyItems(
-		linebot.NewQuickReplyButton(
-			"",
-			linebot.NewMessageAction(Command_RD, "["+Command_RD+"]")),
-	))
 	return this.bot.ReplyMessage(replyToken, messages...)
 }
 
