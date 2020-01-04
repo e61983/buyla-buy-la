@@ -9,19 +9,20 @@ import (
 )
 
 func main() {
-	//bot, err := Buyla.NewBot(
-	//os.Getenv("ChannelSecret"),
-	//os.Getenv("ChannelAccessToken"),
-	//os.Getenv("TEST_URL"),
-	//)
-
 	data := Buyla.NewMetaData()
 
-	api := Buyla.NewApi(data)
+	bot, err := Buyla.NewBot(
+		os.Getenv("ChannelSecret"),
+		os.Getenv("ChannelAccessToken"),
+		os.Getenv("TEST_URL"),
+		data,
+	)
 
-	//if err != nil {
-	//log.Fatal(err)
-	//}
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	api := Buyla.NewApi(data)
 
 	//staticFileServer := http.FileServer(http.Dir("static"))
 	//http.HandleFunc("/static/", http.StripPrefix("/static/", staticFileServer).ServeHTTP)
@@ -38,7 +39,7 @@ func main() {
 	v1.HandleFunc("/{gid}/order/{uid}", api.HandleDeleteOrder).Methods(http.MethodDelete)
 	v1.HandleFunc("/{gid}/order/{uid}", api.HandlePatchOrder).Methods(http.MethodPatch)
 
-	//r.HandleFunc("/callback", bot.Callback)
+	r.HandleFunc("/callback", bot.Callback)
 	log.Println("Listen", os.Getenv("TEST_URL"), os.Getenv("PORT"))
 	log.Fatal(http.ListenAndServe(":"+os.Getenv("PORT"), r))
 }
