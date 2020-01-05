@@ -165,8 +165,9 @@ func (this *Bot) handleText(message *linebot.TextMessage, replyToken string, sou
 	keyword := getKeyWord(message.Text)
 	switch keyword {
 	case TestCommand_Profile:
-		if source.UserID != "" {
-			profile, err := this.bot.GetProfile(source.UserID).Do()
+		uid := getUID(source)
+		if uid != "" {
+			profile, err := this.bot.GetProfile(uid).Do()
 			if err != nil {
 				return this.replyText(replyToken, err.Error())
 			}
@@ -315,10 +316,13 @@ func (this *Bot) handleText(message *linebot.TextMessage, replyToken string, sou
 		if _, ok := this.data.Groups[gid]; !ok {
 			this.data.Groups[gid] = NewGroup()
 			log.Println("[CREATE]", gid)
+		} else {
+			this.data.Groups[gid] = NewGroup()
+			log.Println("[CLEAN]", gid)
 		}
 		this.data.Groups[gid].IsOpen = true
 		log.Println("[OPEN]", gid)
-		return this.replyText(replyToken, "開團啦~~!!!!!\n\n---以下開放下單---\n ")
+		return this.replyText(replyToken, "開團啦~~!!!!! ")
 
 	case Command_Close:
 		gid := getGID(source)
