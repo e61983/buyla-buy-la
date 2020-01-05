@@ -74,6 +74,13 @@ func (this *Api) HandlePostOrder(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if _, ok := this.data.Groups[gid]; !ok {
+		w.WriteHeader(http.StatusBadRequest)
+		w.Header().Set("Content-Type", "application/json")
+		fmt.Fprintf(w, "%s", `{"message":"Buyla group not open"}`)
+		return
+	}
+
 	group := this.data.Groups[gid]
 	if _, ok := group.Records[uid]; !ok {
 		group.Records[uid] = NewRecord(record.UserName)
@@ -92,6 +99,13 @@ func (this *Api) HandlePostOrder(w http.ResponseWriter, r *http.Request) {
 func (this *Api) HandleDeleteOrder(w http.ResponseWriter, r *http.Request) {
 	gid, uid := getOrderParameter(r)
 	group := this.data.Groups[gid]
+
+	if _, ok := this.data.Groups[gid]; !ok {
+		w.WriteHeader(http.StatusBadRequest)
+		w.Header().Set("Content-Type", "application/json")
+		fmt.Fprintf(w, "%s", `{"message":"Buyla group not open"}`)
+		return
+	}
 
 	if _, ok := group.Records[uid]; !ok {
 		w.WriteHeader(http.StatusOK)
