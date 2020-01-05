@@ -150,6 +150,14 @@ func NewBot(channelSecret, channelToken, BaseUrl string, data *MetaData) (*Bot, 
 	return &Bot{bot: bot, baseUrl: BaseUrl, data: data}, nil
 }
 
+func (this *Bot) getProfile(gid, uid string) (*linebot.UserProfileResponse, error) {
+	if gid != "" && gid != "test" {
+		return this.bot.GetGroupMemberProfile(gid, uid).Do()
+	} else {
+		return this.bot.GetProfile(uid).Do()
+	}
+}
+
 func (this *Bot) replyMessage(replyToken string, messages ...linebot.SendingMessage) *linebot.ReplyMessageCall {
 	return this.bot.ReplyMessage(replyToken, messages...)
 }
@@ -166,19 +174,16 @@ func (this *Bot) handleText(message *linebot.TextMessage, replyToken string, sou
 	switch keyword {
 	case TestCommand_Profile:
 		uid := getUID(source)
-		if uid != "" {
-			profile, err := this.bot.GetProfile(uid).Do()
-			if err != nil {
-				return this.replyText(replyToken, err.Error())
-			}
-			if _, err := this.replyMessage(
-				replyToken,
-				linebot.NewTextMessage("使用者:"+profile.DisplayName),
-			).Do(); err != nil {
-				return err
-			}
-		} else {
-			return this.replyText(replyToken, "Bot can't use profile API without user ID")
+		gid := getGID(source)
+		profile, err := this.getProfile(gid, uid)
+		if err != nil {
+			return this.replyText(replyToken, err.Error())
+		}
+		if _, err := this.replyMessage(
+			replyToken,
+			linebot.NewTextMessage("使用者:"+profile.DisplayName),
+		).Do(); err != nil {
+			return err
 		}
 	case TestCommand_LIFF_Test:
 		contents := &linebot.BubbleContainer{
@@ -206,7 +211,7 @@ func (this *Bot) handleText(message *linebot.TextMessage, replyToken string, sou
 	case TestCommand_AddTestRecord:
 		uid := getUID(source)
 		gid := getGID(source)
-		profile, err := this.bot.GetProfile(uid).Do()
+		profile, err := this.getProfile(gid, uid)
 		if err != nil {
 			return this.replyText(replyToken, err.Error())
 		}
@@ -259,7 +264,7 @@ func (this *Bot) handleText(message *linebot.TextMessage, replyToken string, sou
 			log.Println(res)
 		}
 
-		profile, err := this.bot.GetProfile(uid).Do()
+		profile, err := this.getProfile(gid, uid)
 		if err != nil {
 			return this.replyText(replyToken, err.Error())
 		}
