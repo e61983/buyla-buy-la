@@ -93,13 +93,28 @@ func getRecordContents(group *Group) linebot.FlexContainer {
 			},
 		},
 	}
-	for _, record := range group.Records {
+
+	if len(group.Records) > 0 {
+		for _, record := range group.Records {
+			contents.Body.Contents = append(contents.Body.Contents,
+				&linebot.SeparatorComponent{
+					Type:   linebot.FlexComponentTypeSeparator,
+					Margin: linebot.FlexComponentMarginTypeXxl,
+				},
+				newItemComponent(record))
+		}
+	} else {
 		contents.Body.Contents = append(contents.Body.Contents,
 			&linebot.SeparatorComponent{
 				Type:   linebot.FlexComponentTypeSeparator,
 				Margin: linebot.FlexComponentMarginTypeXxl,
 			},
-			newItemComponent(record))
+			&linebot.TextComponent{
+				Type:  linebot.FlexComponentTypeText,
+				Size:  linebot.FlexTextSizeTypeSm,
+				Align: linebot.FlexComponentAlignTypeStart,
+				Text:  "好像什麼也沒有...",
+			})
 	}
 	return contents
 }
@@ -222,7 +237,7 @@ func (this *Bot) handleText(message *linebot.TextMessage, replyToken string, sou
 		}
 		if _, err = this.replyMessage(
 			replyToken,
-			linebot.NewTextMessage(displayName+"建立了一筆測試訂點單"),
+			linebot.NewTextMessage(displayName+"建立了測試訂點單"),
 		).Do(); err != nil {
 			return err
 		}
@@ -230,7 +245,7 @@ func (this *Bot) handleText(message *linebot.TextMessage, replyToken string, sou
 		uid := getUID(source)
 		gid := getGID(source)
 		client := http.Client{}
-		url := "http://2e7e6335.ngrok.io/api/v1/" + gid + "/order/" + uid
+		url := this.baseUrl + "/api/v1/" + gid + "/order/" + uid
 		req, err := http.NewRequest(http.MethodDelete, url, nil)
 		if err != nil {
 			return this.replyText(replyToken, err.Error())
@@ -241,6 +256,17 @@ func (this *Bot) handleText(message *linebot.TextMessage, replyToken string, sou
 			return this.replyText(replyToken, err.Error())
 		} else {
 			log.Println(res)
+		}
+
+		profile, err := this.bot.GetProfile(uid).Do()
+		if err != nil {
+			return this.replyText(replyToken, err.Error())
+		}
+		if _, err = this.replyMessage(
+			replyToken,
+			linebot.NewTextMessage("刪除了"+profile.DisplayName+"的測試訂點單"),
+		).Do(); err != nil {
+			return err
 		}
 	case Command_RD:
 		newButtonComponent := func(displayName, command string) *linebot.ButtonComponent {
@@ -327,13 +353,9 @@ func (this *Bot) handleText(message *linebot.TextMessage, replyToken string, sou
 			return this.replyText(replyToken, "還沒有開團過喔~!\n")
 		}
 
-		if len(group.Records) == 0 {
-			return this.replyText(replyToken, "好像什麼都沒有...\n")
-		}
-
 		if _, err := this.replyMessage(
 			replyToken,
-			linebot.NewFlexMessage("明細", getRecordContents(this.data.Groups[gid])),
+			linebot.NewFlexMessage("明細", getRecordContents(group)),
 		).Do(); err != nil {
 			return err
 		}
