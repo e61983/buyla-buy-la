@@ -74,6 +74,12 @@ func (this *Api) HandlePostOrder(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if _, ok := this.data.Groups[gid]; !ok {
+		w.WriteHeader(http.StatusBadRequest)
+		fmt.Fprintf(w, "%s", `{"message":"not open"}`)
+		return
+	}
+
 	group := this.data.Groups[gid]
 	if _, ok := group.Records[uid]; !ok {
 		group.Records[uid] = NewRecord(record.UserName)
