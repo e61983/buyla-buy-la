@@ -29,19 +29,24 @@ func NewMetaData() *MetaData {
 	m := &MetaData{}
 	m.Groups = make(map[string]*Group)
 	// TODO: just for test
-	m.Groups["test"] = NewGroup()
+	//m.Groups["test"] = NewGroup()
 	return m
 }
 
 func NewGroup() *Group {
 	g := &Group{IsOpen: false}
 	g.Records = make(map[string]*Record)
+	// TODO: just for test
+	//g.Records["tester-hgdkhfgdsj46ryuig"] = NewRecord("Tester")
+	//g.IsOpen=true
 	return g
 }
 
 func NewRecord(name string) *Record {
 	r := &Record{UserName: name}
 	r.Order = NewOrderItems()
+	// TODO: just for test
+	//r.Order.List = append(r.Order.List,NewOrderItem("大平台", "大大", "大", "無限"))
 	return r
 }
 

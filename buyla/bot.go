@@ -1,6 +1,8 @@
 package Buyla
 
 import (
+	"bytes"
+	"encoding/json"
 	"github.com/line/line-bot-sdk-go/linebot"
 	"log"
 	"net/http"
@@ -9,39 +11,97 @@ import (
 )
 
 const (
-	Command_Open          string = "開團"
-	Command_Close         string = "結單"
-	Command_Show          string = "明細"
-	Command_Help          string = "說明"
-	Command_RD            string = "工程模式"
-	TestCommand_Profile   string = "顯示使用者資訊"
-	TestCommand_LIFF_Test string = "顯示LIFF測試選單"
-	Surprise_1            string = "叫你們 RD 出來滴霸格"
+	Command_Open                 string = "開團"
+	Command_Close                string = "結單"
+	Command_Show                 string = "明細"
+	Command_Help                 string = "說明"
+	Command_RD                   string = "工程模式"
+	TestCommand_Profile          string = "顯示使用者資訊"
+	TestCommand_AddTestRecord    string = "建立測試點單"
+	TestCommand_DeleteTestRecord string = "刪除測試點單"
+	TestCommand_LIFF_Test        string = "顯示LIFF測試選單"
+	Surprise_1                   string = "叫你們 RD 出來滴霸格"
 )
 
 type Bot struct {
-	bot  *linebot.Client
-	data *MetaData
+	bot     *linebot.Client
+	data    *MetaData
+	baseUrl string
 }
 
-func NewBot(channelSecret, channelToken, BaseUrl string, data *MetaData) (*Bot, error) {
-	bot, err := linebot.New(channelSecret, channelToken)
-	if err != nil {
-		return nil, err
+func getUID(source *linebot.EventSource) string {
+	return source.UserID
+}
+
+func getGID(source *linebot.EventSource) string {
+	if source.GroupID == "" {
+		// Just For test
+		//return "test"
+		return ""
+	} else {
+		return source.GroupID
+	}
+}
+
+func getRecordContents(group *Group) linebot.FlexContainer {
+	newItemComponent := func(record *Record) *linebot.BoxComponent {
+		box := &linebot.BoxComponent{
+			Type:    linebot.FlexComponentTypeBox,
+			Layout:  linebot.FlexBoxLayoutTypeVertical,
+			Spacing: linebot.FlexComponentSpacingTypeSm,
+			Contents: []linebot.FlexComponent{
+				&linebot.TextComponent{
+					Type:    linebot.FlexComponentTypeText,
+					Size:    linebot.FlexTextSizeTypeSm,
+					Weight:  linebot.FlexTextWeightTypeBold,
+					Align:   linebot.FlexComponentAlignTypeStart,
+					Gravity: linebot.FlexComponentGravityTypeCenter,
+					//Flex:    &descriptionFlex,
+					Text: record.UserName,
+				},
+			},
+		}
+
+		for _, v := range record.Order.List {
+			log.Println("[SHOW]", record.UserName, v)
+			box.Contents = append(box.Contents,
+				&linebot.TextComponent{
+					Type:    linebot.FlexComponentTypeText,
+					Size:    linebot.FlexTextSizeTypeSm,
+					Align:   linebot.FlexComponentAlignTypeStart,
+					Gravity: linebot.FlexComponentGravityTypeCenter,
+					//Flex:    &descriptionFlex,
+					Text: "•" + v.ItemName + " " + v.SweetnessLevel + " " + v.AmountOfIce + " x " + v.Number,
+				})
+		}
+		return box
 	}
 
-	return &Bot{bot: bot, data: data}, nil
-}
-
-func (this *Bot) replyMessage(replyToken string, messages ...linebot.SendingMessage) *linebot.ReplyMessageCall {
-	return this.bot.ReplyMessage(replyToken, messages...)
-}
-
-func (this *Bot) replyText(replyToken, text string) error {
-	if _, err := this.replyMessage(replyToken, linebot.NewTextMessage(text)).Do(); err != nil {
-		return err
+	contents := &linebot.BubbleContainer{
+		Type: linebot.FlexContainerTypeBubble,
+		Body: &linebot.BoxComponent{
+			Type:   linebot.FlexComponentTypeBox,
+			Layout: linebot.FlexBoxLayoutTypeVertical,
+			Contents: []linebot.FlexComponent{
+				&linebot.TextComponent{
+					Type:   linebot.FlexComponentTypeText,
+					Size:   linebot.FlexTextSizeTypeLg,
+					Align:  linebot.FlexComponentAlignTypeCenter,
+					Weight: linebot.FlexTextWeightTypeBold,
+					Text:   "明細",
+				},
+			},
+		},
 	}
-	return nil
+	for _, record := range group.Records {
+		contents.Body.Contents = append(contents.Body.Contents,
+			&linebot.SeparatorComponent{
+				Type:   linebot.FlexComponentTypeSeparator,
+				Margin: linebot.FlexComponentMarginTypeXxl,
+			},
+			newItemComponent(record))
+	}
+	return contents
 }
 
 func getKeyWord(message string) string {
@@ -62,15 +122,31 @@ func getKeyWord(message string) string {
 	mentionName := strings.TrimSpace(token[0][2])
 	keyword := strings.TrimSpace(token[0][3])
 	others := strings.TrimSpace(token[0][4])
-
-	log.Println("mentionName", mentionName)
-	log.Println("keyword", keyword)
-	log.Println("others", others)
+	log.Println("[COMMAND]", keyword, mentionName, others)
 	return keyword
 }
 
+func NewBot(channelSecret, channelToken, BaseUrl string, data *MetaData) (*Bot, error) {
+	bot, err := linebot.New(channelSecret, channelToken)
+	if err != nil {
+		return nil, err
+	}
+
+	return &Bot{bot: bot, baseUrl: BaseUrl, data: data}, nil
+}
+
+func (this *Bot) replyMessage(replyToken string, messages ...linebot.SendingMessage) *linebot.ReplyMessageCall {
+	return this.bot.ReplyMessage(replyToken, messages...)
+}
+
+func (this *Bot) replyText(replyToken, text string) error {
+	if _, err := this.replyMessage(replyToken, linebot.NewTextMessage(text)).Do(); err != nil {
+		return err
+	}
+	return nil
+}
+
 func (this *Bot) handleText(message *linebot.TextMessage, replyToken string, source *linebot.EventSource) error {
-	log.Println(message.Text)
 	keyword := getKeyWord(message.Text)
 	switch keyword {
 	case TestCommand_Profile:
@@ -111,8 +187,62 @@ func (this *Bot) handleText(message *linebot.TextMessage, replyToken string, sou
 		).Do(); err != nil {
 			return err
 		}
+	case TestCommand_AddTestRecord:
+		uid := getUID(source)
+		gid := getGID(source)
+		profile, err := this.bot.GetProfile(uid).Do()
+		if err != nil {
+			return this.replyText(replyToken, err.Error())
+		}
+		displayName := profile.DisplayName
+		testRecord := &Record{
+			UserName: displayName,
+			Order: &OrderItems{
+				List: []*OrderItem{
+					&OrderItem{"休假", "跟你一樣甜", "不要冰的", "很多很多"},
+				},
+			},
+		}
+		testRecordJSON := new(bytes.Buffer)
+		json.NewEncoder(testRecordJSON).Encode(&testRecord)
+		if err != nil {
+			return this.replyText(replyToken, err.Error())
+		}
+		client := http.Client{}
+		//TODO show usgin variable
+		url := this.baseUrl + "/api/v1/" + gid + "/order/" + uid
+		req, err := http.NewRequest(http.MethodPost, url, testRecordJSON)
+		if err != nil {
+			return this.replyText(replyToken, err.Error())
+		}
+		req.Header.Set("Content-Type", "application/json; charset=UTF-8")
+		_, err = client.Do(req)
+		if err != nil {
+			return this.replyText(replyToken, err.Error())
+		}
+		if _, err = this.replyMessage(
+			replyToken,
+			linebot.NewTextMessage(displayName+"建立了一筆測試訂點單"),
+		).Do(); err != nil {
+			return err
+		}
+	case TestCommand_DeleteTestRecord:
+		uid := getUID(source)
+		gid := getGID(source)
+		client := http.Client{}
+		url := "http://2e7e6335.ngrok.io/api/v1/" + gid + "/order/" + uid
+		req, err := http.NewRequest(http.MethodDelete, url, nil)
+		if err != nil {
+			return this.replyText(replyToken, err.Error())
+		}
+		req.Header.Set("Content-Type", "application/json; charset=UTF-8")
+		res, err := client.Do(req)
+		if err != nil {
+			return this.replyText(replyToken, err.Error())
+		} else {
+			log.Println(res)
+		}
 	case Command_RD:
-
 		newButtonComponent := func(displayName, command string) *linebot.ButtonComponent {
 			return &linebot.ButtonComponent{
 				Type:   linebot.FlexComponentTypeButton,
@@ -130,8 +260,10 @@ func (this *Bot) handleText(message *linebot.TextMessage, replyToken string, sou
 				Type:   linebot.FlexComponentTypeBox,
 				Layout: linebot.FlexBoxLayoutTypeVertical,
 				Contents: []linebot.FlexComponent{
-					newButtonComponent("DEBUG-"+TestCommand_Profile, "["+TestCommand_Profile+"]"),
-					newButtonComponent("DEBUG-"+TestCommand_LIFF_Test, "["+TestCommand_LIFF_Test+"]"),
+					newButtonComponent("TEST-"+TestCommand_Profile, "["+TestCommand_Profile+"]"),
+					newButtonComponent("TEST-"+TestCommand_LIFF_Test, "["+TestCommand_LIFF_Test+"]"),
+					newButtonComponent("TEST-"+TestCommand_AddTestRecord, "["+TestCommand_AddTestRecord+"]"),
+					newButtonComponent("TEST-"+TestCommand_DeleteTestRecord, "["+TestCommand_DeleteTestRecord+"]"),
 					newButtonComponent(Command_RD, "["+Command_RD+"]"),
 					newButtonComponent(Command_Open, "["+Command_Open+"]"),
 					newButtonComponent(Command_Close, "["+Command_Close+"]"),
@@ -148,10 +280,63 @@ func (this *Bot) handleText(message *linebot.TextMessage, replyToken string, sou
 		).Do(); err != nil {
 			return err
 		}
+
 	case Command_Open:
-		return this.replyText(replyToken, "目前還不支援'["+keyword+"]'這個功能喔!")
+		gid := getGID(source)
+		if gid == "" {
+			return this.replyText(replyToken, "'["+keyword+"]'只能在群組裡面使用喔!")
+		}
+		if _, ok := this.data.Groups[gid]; !ok {
+			this.data.Groups[gid] = NewGroup()
+			log.Println("[CREATE]", gid)
+		}
+		this.data.Groups[gid].IsOpen = true
+		log.Println("[OPEN]", gid)
+		return this.replyText(replyToken, "開團啦~~!!!!!\n\n---以下開放下單---\n ")
+
 	case Command_Close:
-		return this.replyText(replyToken, "目前還不支援'["+keyword+"]'這個功能喔!")
+		gid := getGID(source)
+		if gid == "" {
+			return this.replyText(replyToken, "'["+keyword+"]'只能在群組裡面使用喔!")
+		}
+		if _, ok := this.data.Groups[gid]; ok && this.data.Groups[gid].IsOpen == true {
+			this.data.Groups[gid].IsOpen = false
+			log.Println("[CLOSE]", gid)
+		} else {
+			return this.replyText(replyToken, "現在還沒有開始揪團~\n 大家都在等你開喔~!! XD")
+		}
+		if _, err := this.replyMessage(
+			replyToken,
+			linebot.NewTextMessage("熱騰騰的明細出來啦~~"),
+			linebot.NewFlexMessage("明細", getRecordContents(this.data.Groups[gid])),
+		).Do(); err != nil {
+			return err
+		}
+		//return this.replyText(replyToken, "結單啦~!")
+	case Command_Show:
+		gid := getGID(source)
+		log.Println("[SHOW]", gid)
+		if gid == "" {
+			return this.replyText(replyToken, "'["+keyword+"]'只能在群組裡面使用喔!")
+		}
+
+		var group *Group
+		if _, ok := this.data.Groups[gid]; ok {
+			group = this.data.Groups[gid]
+		} else {
+			return this.replyText(replyToken, "還沒有開團過喔~!\n")
+		}
+
+		if len(group.Records) == 0 {
+			return this.replyText(replyToken, "好像什麼都沒有...\n")
+		}
+
+		if _, err := this.replyMessage(
+			replyToken,
+			linebot.NewFlexMessage("明細", getRecordContents(this.data.Groups[gid])),
+		).Do(); err != nil {
+			return err
+		}
 	case Command_Help:
 		functionFlex := 3
 		descriptionFlex := 5
@@ -220,8 +405,6 @@ func (this *Bot) handleText(message *linebot.TextMessage, replyToken string, sou
 		).Do(); err != nil {
 			return err
 		}
-	case Command_Show:
-		return this.replyText(replyToken, "目前還不支援'["+keyword+"]'這個功能喔!")
 	case Surprise_1:
 		if _, err := this.replyMessage(
 			replyToken,

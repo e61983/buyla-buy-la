@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/gorilla/mux"
+	"log"
 	"net/http"
 )
 
@@ -78,24 +79,28 @@ func (this *Api) HandlePostOrder(w http.ResponseWriter, r *http.Request) {
 		group.Records[uid] = NewRecord(record.UserName)
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(record)
 	for _, v := range record.Order.List {
 		group.Records[uid].Order.List = append(group.Records[uid].Order.List, v)
+		log.Println("[ADD]", gid, record.UserName, v)
 	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(record)
 	return
 }
 
 func (this *Api) HandleDeleteOrder(w http.ResponseWriter, r *http.Request) {
 	gid, uid := getOrderParameter(r)
 	group := this.data.Groups[gid]
+
 	if _, ok := group.Records[uid]; !ok {
 		w.WriteHeader(http.StatusOK)
 		return
 	}
-	w.WriteHeader(http.StatusOK)
+	log.Println("[DELETE]", gid, group.Records[uid].UserName)
 	group.Records[uid] = nil
 	delete(group.Records, uid)
+	w.WriteHeader(http.StatusOK)
 	return
 }
 
