@@ -318,13 +318,20 @@ func (this *Bot) handleText(message *linebot.TextMessage, replyToken string, sou
 		if gid == "" {
 			return this.replyText(replyToken, "'["+keyword+"]'只能在群組裡面使用喔!")
 		}
+
 		if _, ok := this.data.Groups[gid]; !ok {
 			this.data.Groups[gid] = NewGroup()
 			log.Println("[CREATE]", gid)
 		} else {
-			this.data.Groups[gid] = NewGroup()
-			log.Println("[CLEAN]", gid)
+			if this.data.Groups[gid].IsOpen == false {
+				this.data.Groups[gid] = NewGroup()
+				log.Println("[CLEAN]", gid)
+			} else {
+				log.Println("[ABORT]", gid)
+				return this.replyText(replyToken, "已經在開了喔~!")
+			}
 		}
+
 		this.data.Groups[gid].IsOpen = true
 		log.Println("[OPEN]", gid)
 		return this.replyText(replyToken, "開團啦~~!!!!! ")
