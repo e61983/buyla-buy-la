@@ -9,151 +9,108 @@
   <!-- Bootstrap CSS -->
   <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.2.1/css/bootstrap.min.css"
     integrity="sha384-GJzZqFGwb1QTTN6wy59ffF1BuGJpLSa9DkKMp0DgiMDm4iYMj70gZWKYbI706tWS" crossorigin="anonymous">
-
   <title>揪團啦~!</title>
 </head>
 
 <body>
-  <div class="container"></div>
-  <div class="row">
-    <div class="col mx-2">
-      <div class="card my-1">
-        <div class="card-body">
-          <div class="row mb-2 align-items-center">
-            <div class="col-md-2 col-12 d-flex flex-column  align-items-center">
-              <img src="https://randomuser.me/api/portraits/women/71.jpg" width="128" height="128" class="mr-3">
-              <div class="h5">星期天配音是對的</div>
-            </div>
-            <div class="col-md-10 col-12">
-              <div class="border" style="border-radius: 5px;">
-                <form action="">
-                  <!-- goods-->
-                  <div class="form-row mx-sm-2 mx-1 mt-2">
-                    <div class="col-md">
-                      <div class="form-group">
-                        <label for="good_name">品項</label>
-                        <input class="form-control" type="text id=" good_name" placeholder="請輸入品名">
+  <div class="container" id="app">
+    <div class="row">
+      <div class="col mx-2">
+        <div class="card my-1">
+          <div class="card-body">
+            <div class="row mb-2 align-items-center">
+              <div class="col-md-2 col-12 d-flex flex-column  align-items-center">
+                <img :src="profile.pictureUrl" width="128" height="128" class="mr-3" style="border-radius:100%">
+                <div class="h5">{{profile.displayName}}</div>
+              </div>
+              <div class="col-md-10 col-12">
+                <div class="border" style="border-radius: 5px;">
+                  <form action="">
+                    <!-- goods-->
+                    <div class="form-row mx-sm-2 mx-1 mt-2" v-for="(good,index) in new_record.goods" :key="index">
+                      <div class="col-md">
+                        <div class="form-group">
+                          <label for="good_name">品項</label>
+                          <input class="form-control" type="text" id=good_name" placeholder="請輸入品名" v-model=good.goods>
+                        </div>
+                      </div>
+                      <div class="col-md-2">
+                        <div class="form-group">
+                          <label for="sweeting_level">甜度</label>
+                          <select class="form-control" type="text" id="sweeting_level" v-model="good.sweetness_level">
+                            <option value="正常" selected>正常</option>
+                            <option value="2"></option>
+                            <option value="3"></option>
+                            <option value="4"></option>
+                            <option value="5"></option>
+                          </select>
+                        </div>
+                      </div>
+                      <div class="col-md-2">
+                        <div class="form-group">
+                          <label for="amount_of_icd">冰量</label>
+                          <select class="form-control" type="text" id="amount_of_icd" v-model="good.amount_of_ice">
+                            <option value="正常" selected>正常</option>
+                            <option value="2"></option>
+                            <option value="3"></option>
+                            <option value="4"></option>
+                            <option value="熱的">熱的</option>
+                          </select>
+                        </div>
+                      </div>
+                      <div class="col-md">
+                        <div class="form-group">
+                          <label for="number">數量</label>
+                          <select class="form-control" type="number" id="number" v-model="good.number">
+                            <option value="1" selected>1</option>
+                            <option value="2">2</option>
+                            <option value="3">3</option>
+                            <option value="4">4</option>
+                            <option value="5">5</option>
+                          </select>
+                        </div>
+                      </div>
+                      <div class="col-md-2 d-flex align-items-center">
+                        <button type="button" class="btn btn-outline-danger mt-md-3 mb-3 mb-md-0 btn-block"
+                          @click="destory_good(good)">移除</button>
                       </div>
                     </div>
-                    <div class="col-md-2">
-                      <div class="form-group">
-                        <label for="sweeting_level">甜度</label>
-                        <select class="form-control" type="text" id="sweeting_level">
-                          <option value="正常" selected>正常</option>
-                          <option value="2"></option>
-                          <option value="3"></option>
-                          <option value="4"></option>
-                          <option value="5"></option>
-                        </select>
-                      </div>
-                    </div>
-                    <div class="col-md-2">
-                      <div class="form-group">
-                        <label for="amount_of_icd">冰量</label>
-                        <select class="form-control" type="text" id="amount_of_icd">
-                          <option value="正常" selected>正常</option>
-                          <option value="2"></option>
-                          <option value="3"></option>
-                          <option value="4"></option>
-                          <option value="熱的">熱的</option>
-                        </select>
-                      </div>
-                    </div>
-                    <div class="col-md">
-                      <div class="form-group">
-                        <label for="number">數量</label>
-                        <select class="form-control" type="number" id="amount_of_icd">
-                          <option value="1" selected>1</option>
-                          <option value="2">2</option>
-                          <option value="3">3</option>
-                          <option value="4">4</option>
-                          <option value="5">5</option>
-                        </select>
-                      </div>
-                    </div>
-                    <div class="col-md-2 d-flex align-items-center">
-                      <button type="button" class="btn btn-outline-danger mt-md-3 mb-3 mb-md-0 btn-block ">移除</button>
-                    </div>
-                  </div>
-                  <!--end goods-->
-                  <div class="form-row mx-sm-2 mx-1 mt-2">
-                    <div class="col-md">
-                      <div class="form-group">
-                        <label for="good_name">品項</label>
-                        <input class="form-control" type="text id=" good_name" placeholder="請輸入品名">
-                      </div>
-                    </div>
-                    <div class="col-md-2">
-                      <div class="form-group">
-                        <label for="sweeting_level">甜度</label>
-                        <select class="form-control" type="text" id="sweeting_level">
-                          <option value="正常" selected>正常</option>
-                          <option value="2"></option>
-                          <option value="3"></option>
-                          <option value="4"></option>
-                          <option value="5"></option>
-                        </select>
-                      </div>
-                    </div>
-                    <div class="col-md-2">
-                      <div class="form-group">
-                        <label for="amount_of_icd">冰量</label>
-                        <select class="form-control" type="text" id="amount_of_icd">
-                          <option value="正常" selected>正常</option>
-                          <option value="2"></option>
-                          <option value="3"></option>
-                          <option value="4"></option>
-                          <option value="熱的">熱的</option>
-                        </select>
-                      </div>
-                    </div>
-                    <div class="col-md">
-                      <div class="form-group">
-                        <label for="number">數量</label>
-                        <select class="form-control" type="number" id="amount_of_icd">
-                          <option value="1" selected>1</option>
-                          <option value="2">2</option>
-                          <option value="3">3</option>
-                          <option value="4">4</option>
-                          <option value="5">5</option>
-                        </select>
-                      </div>
-                    </div>
-                    <div class="col-md-2 d-flex align-items-center">
-                      <button type="button" class="btn btn-outline-danger mt-md-3 mb-3 mb-md-0 btn-block ">移除</button>
-                    </div>
-                  </div>
+                    <!--end goods-->
 
-                  <div class="d-flex ">
-                    <button type="button" class="btn btn-outline-success btn-sm mx-2">新增一個新的品項</button>
-                  </div>
-                  <div class="d-flex justify-content-center my-2">
-                    <button type="reset" class="btn btn-outline-danger mx-2">清除</button>
-                    <button type="button" class="btn btn-success mx-2" data-toggle="modal"
-                      data-target="#submintModal">送出</button>
-                  </div>
-                </form>
+                    <div class="d-flex ">
+                      <button type="button" class="btn btn-outline-success btn-sm mx-2"
+                        @click="create_new_good">新增一個新的品項</button>
+                    </div>
+                    <div class="d-flex justify-content-center my-2">
+                      <button type="reset" class="btn btn-outline-danger mx-2">清除</button>
+                      <button type="button" class="btn btn-success mx-2" data-toggle="modal"
+                        data-target="#submintModal">送出</button>
+                    </div>
+                  </form>
 
+                </div>
               </div>
             </div>
-          </div>
-          <div class="row mb-2 align-items-center">
-            <div class="col-md-2 col-12 d-flex flex-column  align-items-center">
-              <img src="https://randomuser.me/api/portraits/women/91.jpg" width="128" height="128" class="mr-3">
-              <div class="h5">上班不要看</div>
-            </div>
-            <div class="col-md col-12">
-              <div class="" style="border-radius: 5px;">
-                <div class="card">
-                  <div class="card-body">
-                    <div class="row align-items-center flex-column">
-                      <div class="col">
-                        <ul class="mb-0">
-                          <li>大冰紅 無糖熱的 * 1</li>
-                        </ul>
-                      </div>
-                      <div class="col-md-3 col  mt-2">
-                        <button type=button class="btn btn-outline-primary btn-block">跟上班不要看一樣</button>
+            <!-- test vue -->
+            <div class="row mb-2 align-items-center" v-for="(record, index) in records" :key="index">
+              <div class="col-md-2 col-12 d-flex flex-column  align-items-center">
+                <img src="https://randomuser.me/api/portraits/women/91.jpg" width="128px" height="128px" class="mr-3"
+                  style="border-radius:100%">
+                <div class="h5">{{record.username}}</div>
+              </div>
+              <div class="col-md-10 col-12">
+                <div class="" style="border-radius: 5px;">
+                  <div class="card">
+                    <div class="card-body">
+                      <div class="row align-items-center flex-column">
+                        <div class="col">
+                          <ul class="mb-0" v-for="(good, sub_index) in record.order.list" :key="sub_index">
+                            <li>{{good.goods}} {{good.sweetness_level}} {{good.amount_of_ice}} * {{good.number}}</li>
+                          </ul>
+                        </div>
+                        <div class="col-md-3 col mt-2">
+                          <button type=button class="btn btn-outline-primary btn-block">跟{{record.username}}一樣</button>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -161,75 +118,186 @@
               </div>
             </div>
           </div>
-          <div class="row mb-2 align-items-center">
-            <div class="col-md-2 col-12 d-flex flex-column  align-items-center">
-              <img src="https://randomuser.me/api/portraits/men/71.jpg" width="128" height="128" class="mr-3">
-              <div class="h5">上班好想看</div>
-            </div>
-            <div class="col-md-10 col-12">
-              <div class="" style="border-radius: 5px;">
-                <div class="card">
-                  <div class="card-body">
-                    <div class="row align-items-center flex-column">
-                      <div class="col">
-                        <ul class="mb-0">
-                          <li>大冰紅 無糖熱的 * 1</li>
-                          <li>大冰紅 無糖熱的 * 1</li>
-                          <li>大冰紅 無糖熱的 * 1</li>
-                          <li>大冰紅 無糖熱的 * 1</li>
-                          <li>大冰紅 無糖熱的 * 1</li>
-                          <li>大冰紅 無糖熱的 * 1</li>
-                        </ul>
-                      </div>
-                      <div class="col-md-3 col mt-2">
-                        <button type=button class="btn btn-outline-primary btn-block">跟上班好想看一樣</button>
-                      </div>
-                    </div>
+          <div class="card-footer"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Submit Modal -->
+    <div class="modal fade" id="submintModal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel"
+      aria-hidden="true">
+      <div class="modal-dialog" role="document">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="exampleModalLabel">再一次確認</h5>
+            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+              <span aria-hidden="true">&times;</span>
+            </button>
+          </div>
+          <div class="modal-body">
+            要加入揪團了嗎? 還有沒有想點還沒點到的呢~?
+            <div class="card">
+              <div class="card-body">
+                <div class="row align-items-center flex-column">
+                  <div class="col">
+                    <ul class="mb-0" v-for="(good, sub_index) in new_record.goods" :key="sub_index">
+                      <li>{{good.goods}} {{good.sweetness_level}} {{good.amount_of_ice}} * {{good.number}}</li>
+                    </ul>
                   </div>
                 </div>
               </div>
             </div>
           </div>
-        </div>
-        <div class="card-footer"></div>
-      </div>
-    </div>
-  </div>
-  </div>
-
-  <!-- Submit Modal -->
-  <div class="modal fade" id="submintModal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel"
-    aria-hidden="true">
-    <div class="modal-dialog" role="document">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h5 class="modal-title" id="exampleModalLabel">再一次確認</h5>
-          <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-            <span aria-hidden="true">&times;</span>
-          </button>
-        </div>
-        <div class="modal-body">
-          要加入揪團了嗎? 還有沒有想點還沒點到的呢~?
-        </div>
-        <div class="modal-footer">
-          <button type="button" class="btn btn-outline-danger" data-dismiss="modal">再想一下</button>
-          <button type="button" class="btn btn-success">確認加入揪團</button>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-outline-danger" data-dismiss="modal">再想一下</button>
+            <button type="button" class="btn btn-success" @click="send_order">確認加入揪團</button>
+          </div>
         </div>
       </div>
     </div>
-  </div>
 
-  <!-- Optional JavaScript -->
-  <!-- jQuery first, then Popper.js, then Bootstrap JS -->
-  <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js"
-    integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo"
-    crossorigin="anonymous"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.6/umd/popper.min.js"
-    integrity="sha384-wHAiFfRlMFy6i5SRaxvfOCifBUQy1xHdJ/yoi7FRNXMRBu5WHdZYu1hA6ZOblgut"
-    crossorigin="anonymous"></script>
-  <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.2.1/js/bootstrap.min.js"
-    integrity="sha384-B0UglyR+jN6CkvvICOB2joaf5I4l3gm9GU6Hc1og6Ls7i6U/mkkaduKaBhlAXv9k"
-    crossorigin="anonymous"></script>
+    <!-- Optional JavaScript -->
+    <!-- jQuery first, then Popper.js, then Bootstrap JS -->
+    <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js"
+      integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo"
+      crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.6/umd/popper.min.js"
+      integrity="sha384-wHAiFfRlMFy6i5SRaxvfOCifBUQy1xHdJ/yoi7FRNXMRBu5WHdZYu1hA6ZOblgut"
+      crossorigin="anonymous"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.2.1/js/bootstrap.min.js"
+      integrity="sha384-B0UglyR+jN6CkvvICOB2joaf5I4l3gm9GU6Hc1og6Ls7i6U/mkkaduKaBhlAXv9k"
+      crossorigin="anonymous"></script>
+    <!-- Vue -->
+    <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+    <script src="https://static.line-scdn.net/liff/edge/2.1/sdk.js"></script>
+    <!--
+
+    <script src="https://cdn.jsdelivr.net/npm/vue"></script>
+  -->
+    <script>
+
+      var app = new Vue({
+        el: '#app',
+        data: {
+          records: [
+            {
+              "username": "上班不要看",
+              "order": {
+                "list": [
+                  {
+                    "goods": "大冰紅",
+                    "sweetness_level": "無糖",
+                    "amount_of_ice": "熱的",
+                    "number": 1
+                  }
+                ]
+              }
+            },
+            {
+              "username": "上班好想看",
+              "order": {
+                "list": [
+                  {
+                    "goods": "大冰紅",
+                    "sweetness_level": "無糖",
+                    "amount_of_ice": "熱的",
+                    "number": 1
+                  },
+                  {
+                    "goods": "大冰紅",
+                    "sweetness_level": "無糖",
+                    "amount_of_ice": "熱的",
+                    "number": 2
+                  },
+                  {
+                    "goods": "大冰紅",
+                    "sweetness_level": "無糖",
+                    "amount_of_ice": "熱的",
+                    "number": 3
+                  },
+                  {
+                    "goods": "大冰紅",
+                    "sweetness_level": "無糖",
+                    "amount_of_ice": "熱的",
+                    "number": 4
+                  },
+                  {
+                    "goods": "大冰紅",
+                    "sweetness_level": "無糖",
+                    "amount_of_ice": "熱的",
+                    "number": 5
+                  }
+                ]
+              }
+            }
+          ],
+          new_record: {
+            "goods": [],
+          },
+          profile: null
+        },
+        beforeCreate: function () {
+          console.log("liff init")
+          liff.init({ liffId: "1602541695-bYKBPBe6" })
+          if (!liff.isLoggedIn()) {
+            liff.login();
+          }
+        },
+        mounted: function () {
+          console.log("[liff] " + liff.getOS())
+          this.getProfile()
+          console.log("done")
+        },
+        methods: {
+          create_new_good: function () {
+            console.log("create_new_good")
+            var new_id = Math.floor(Date.now())
+            this.new_record.goods.push({
+              id: new_id,
+              goods: "",
+              sweetness_level: "正常",
+              amount_of_ice: "正常",
+              number: 1
+            })
+          },
+          destory_good: function (good) {
+            var index = this.new_record.goods.findIndex(function (_good) {
+              return good.id == _good.id
+            })
+            this.new_record.goods.splice(index, 1)
+          },
+          send_order: function () {
+            let _this = this
+            liff.sendMessages([
+              {
+                type: 'text',
+                text: JSON.stringify(_this.new_record),
+              }
+            ])
+              .then(() => {
+                console.log('message sent');
+              })
+              .catch((err) => {
+                console.log('error', err);
+              });
+            $('#submintModal').modal('hide')
+            liff.closeWindow();
+          },
+          getProfile: function () {
+            let _this = this
+            if (liff.isLoggedIn()) {
+              liff.getProfile().then(function (profile) {
+                _this.profile = profile
+              }).catch(function (error) {
+                consloe.log('Error getting profile: ' + error)
+              })
+            }
+          },
+        }
+      })
+
+    </script>
+  </div>
 </body>
 
 </html>
