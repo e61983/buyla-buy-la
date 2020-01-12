@@ -24,12 +24,6 @@ func main() {
 
 	api := Buyla.NewApi(data)
 
-	//staticFileServer := http.FileServer(http.Dir("static"))
-	//http.HandleFunc("/static/", http.StripPrefix("/static/", staticFileServer).ServeHTTP)
-
-	//downloadFileServer := http.FileServer(http.Dir(bot.DownloadDir))
-	//http.HandleFunc("/downloaded/", http.StripPrefix("/downloaded/", downloadFileServer).ServeHTTP)
-
 	r := mux.NewRouter()
 	v1 := r.PathPrefix("/api/v1").Subrouter()
 	v1.HandleFunc("/{gid}/orders", api.HandleGetOrders).Methods(http.MethodGet)
@@ -40,6 +34,7 @@ func main() {
 	v1.HandleFunc("/{gid}/order/{uid}", api.HandlePatchOrder).Methods(http.MethodPatch)
 
 	r.HandleFunc("/callback", bot.Callback)
+	r.PathPrefix("/static/").Handler(http.StripPrefix("/static/", http.FileServer(http.Dir("static"))))
 	log.Println("Listen", os.Getenv("TEST_URL"), os.Getenv("PORT"))
 	log.Fatal(http.ListenAndServe(":"+os.Getenv("PORT"), r))
 }
