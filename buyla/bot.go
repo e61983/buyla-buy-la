@@ -36,7 +36,7 @@ func getUID(source *linebot.EventSource) string {
 func getGID(source *linebot.EventSource) string {
 	if source.GroupID == "" {
 		// Just For test
-		//return "test"
+		return "test"
 		return ""
 	} else {
 		return source.GroupID
@@ -56,21 +56,19 @@ func getRecordContents(group *Group) linebot.FlexContainer {
 					Weight:  linebot.FlexTextWeightTypeBold,
 					Align:   linebot.FlexComponentAlignTypeStart,
 					Gravity: linebot.FlexComponentGravityTypeCenter,
-					//Flex:    &descriptionFlex,
-					Text: record.UserName,
+					Text: record.UserProfile.DisplayName,
 				},
 			},
 		}
 
-		for _, v := range record.Order.List {
-			log.Println("[SHOW]", record.UserName, v)
+		for _, v := range record.Goods {
+			log.Println("[SHOW]", record.UserProfile.DisplayName, v)
 			box.Contents = append(box.Contents,
 				&linebot.TextComponent{
 					Type:    linebot.FlexComponentTypeText,
 					Size:    linebot.FlexTextSizeTypeSm,
 					Align:   linebot.FlexComponentAlignTypeStart,
 					Gravity: linebot.FlexComponentGravityTypeCenter,
-					//Flex:    &descriptionFlex,
 					Text: "•" + v.ItemName + " " + v.SweetnessLevel + " " + v.AmountOfIce + " x " + v.Number,
 				})
 		}
@@ -217,12 +215,11 @@ func (this *Bot) handleText(message *linebot.TextMessage, replyToken string, sou
 		}
 		displayName := profile.DisplayName
 		testRecord := &Record{
-			UserName: displayName,
-			Order: &OrderItems{
-				List: []*OrderItem{
-					&OrderItem{"休假", "跟你一樣甜", "不要冰的", "很多很多"},
-				},
+			UserProfile: &Profile{DisplayName: displayName, PhotoUrl: "https://randomuser.me/api/portraits/women/91.jpg"},
+			Goods: []*Good{
+				&Good{"休假", "正常", "正常", "很多很多"},
 			},
+			Comment: "在有跟沒有之間",
 		}
 		testRecordJSON := new(bytes.Buffer)
 		json.NewEncoder(testRecordJSON).Encode(&testRecord)

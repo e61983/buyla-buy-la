@@ -46,7 +46,7 @@ func (this *Api) HandleGetOrder(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(group.Records[uid].Order)
+	json.NewEncoder(w).Encode(group.Records[uid].Goods)
 	return
 }
 
@@ -83,12 +83,12 @@ func (this *Api) HandlePostOrder(w http.ResponseWriter, r *http.Request) {
 
 	group := this.data.Groups[gid]
 	if _, ok := group.Records[uid]; !ok {
-		group.Records[uid] = NewRecord(record.UserName)
+		group.Records[uid] = NewRecord(record.UserProfile)
 	}
 
-	for _, v := range record.Order.List {
-		group.Records[uid].Order.List = append(group.Records[uid].Order.List, v)
-		log.Println("[ADD]", gid, record.UserName, v)
+	for _, v := range record.Goods {
+		group.Records[uid].Goods = append(group.Records[uid].Goods, v)
+		log.Println("[ADD]", gid, record.UserProfile.DisplayName, v)
 	}
 
 	w.Header().Set("Content-Type", "application/json")
@@ -111,7 +111,7 @@ func (this *Api) HandleDeleteOrder(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		return
 	}
-	log.Println("[DELETE]", gid, group.Records[uid].UserName)
+	log.Println("[DELETE]", gid, group.Records[uid].UserProfile.DisplayName)
 	group.Records[uid] = nil
 	delete(group.Records, uid)
 	w.WriteHeader(http.StatusOK)
