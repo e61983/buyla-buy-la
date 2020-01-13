@@ -27,11 +27,12 @@
                 <div class="border" style="border-radius: 5px;">
                   <form action="">
                     <!-- goods-->
-                    <div class="form-row mx-sm-2 mx-1 mt-2" v-for="(good,index) in new_record.goods" :key="index">
+                    <div class="form-row mx-sm-2 mx-1 mt-2" v-for="(good,index) in current_record.goods" :key="index">
                       <div class="col-md">
                         <div class="form-group">
-                          <label for="good_name">品項</label>
-                          <input class="form-control" type="text" id=good_name" placeholder="請輸入品名" v-model=good.goods>
+                          <label for="item_name">品項</label>
+                          <input class="form-control" type="text" id="item_name" placeholder="請輸入品名"
+                            v-model=good.item_name>
                         </div>
                       </div>
                       <div class="col-md-2">
@@ -92,11 +93,11 @@
               </div>
             </div>
             <!-- test vue -->
-            <div class="row mb-2 align-items-center" v-for="(record, index) in records" :key="index">
+            <div class="row mb-2 align-items-center" v-for="(record, index) in show_records" :key="index">
               <div class="col-md-2 col-12 d-flex flex-column  align-items-center">
-                <img src="https://randomuser.me/api/portraits/women/91.jpg" width="128px" height="128px" class="mr-3"
+                <img :src="record.user_profile.photo_url" width="128px" height="128px" class="mr-3"
                   style="border-radius:100%">
-                <div class="h5">{{record.username}}</div>
+                <div class="h5">{{record.user_profile.display_name}}</div>
               </div>
               <div class="col-md-10 col-12">
                 <div class="" style="border-radius: 5px;">
@@ -104,12 +105,14 @@
                     <div class="card-body">
                       <div class="row align-items-center flex-column">
                         <div class="col">
-                          <ul class="mb-0" v-for="(good, sub_index) in record.order.list" :key="sub_index">
-                            <li>{{good.goods}} {{good.sweetness_level}} {{good.amount_of_ice}} * {{good.number}}</li>
+                          <ul class="mb-0" v-for="(good, sub_index) in record.goods" :key="sub_index">
+                            <li>{{good.item_name}} {{good.sweetness_level}} {{good.amount_of_ice}} * {{good.number}}
+                            </li>
                           </ul>
                         </div>
                         <div class="col-md-3 col mt-2">
-                          <button type=button class="btn btn-outline-primary btn-block">跟{{record.username}}一樣</button>
+                          <button type=button
+                            class="btn btn-outline-primary btn-block">跟{{record.user_profile.display_name}}一樣</button>
                         </div>
                       </div>
                     </div>
@@ -140,7 +143,7 @@
               <div class="card-body">
                 <div class="row align-items-center flex-column">
                   <div class="col">
-                    <ul class="mb-0" v-for="(good, sub_index) in new_record.goods" :key="sub_index">
+                    <ul class="mb-0" v-for="(good, sub_index) in current_record.goods" :key="sub_index">
                       <li>{{good.goods}} {{good.sweetness_level}} {{good.amount_of_ice}} * {{good.number}}</li>
                     </ul>
                   </div>
@@ -170,71 +173,51 @@
     <!-- Vue -->
     <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
     <script src="https://static.line-scdn.net/liff/edge/2.1/sdk.js"></script>
-    <!--
+    <!-- axios -->
 
+    <!--
+    <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/vue"></script>
   -->
     <script>
-
       var app = new Vue({
         el: '#app',
         data: {
-          records: [
-            {
-              "username": "上班不要看",
-              "order": {
-                "list": [
-                  {
-                    "goods": "大冰紅",
-                    "sweetness_level": "無糖",
-                    "amount_of_ice": "熱的",
-                    "number": 1
-                  }
-                ]
-              }
+          records: {
+            "test-uid": {
+              "user_profile": {
+                "display_name": "星期天配音是對的",
+                "photo_url": "https://randomuser.me/api/portraits/men/71.jpg"
+              },
+              "goods": [
+                {
+                  "item_name": "大平台",
+                  "sweetness_level": "大大",
+                  "amount_of_ice": "大",
+                  "number": "無限"
+                }
+              ],
+              "comment": ""
             },
-            {
-              "username": "上班好想看",
-              "order": {
-                "list": [
-                  {
-                    "goods": "大冰紅",
-                    "sweetness_level": "無糖",
-                    "amount_of_ice": "熱的",
-                    "number": 1
-                  },
-                  {
-                    "goods": "大冰紅",
-                    "sweetness_level": "無糖",
-                    "amount_of_ice": "熱的",
-                    "number": 2
-                  },
-                  {
-                    "goods": "大冰紅",
-                    "sweetness_level": "無糖",
-                    "amount_of_ice": "熱的",
-                    "number": 3
-                  },
-                  {
-                    "goods": "大冰紅",
-                    "sweetness_level": "無糖",
-                    "amount_of_ice": "熱的",
-                    "number": 4
-                  },
-                  {
-                    "goods": "大冰紅",
-                    "sweetness_level": "無糖",
-                    "amount_of_ice": "熱的",
-                    "number": 5
-                  }
-                ]
-              }
+            "test-uid2": {
+              "user_profile": {
+                "display_name": "星期天配音是不對的",
+                "photo_url": "https://randomuser.me/api/portraits/women/91.jpg"
+              },
+              "goods": [
+                {
+                  "item_name": "大平台",
+                  "sweetness_level": "大大",
+                  "amount_of_ice": "大",
+                  "number": "無限"
+                }
+              ],
+              "comment": ""
             }
-          ],
-          new_record: {
-            "goods": [],
           },
-          profile: null
+          current_record: { goods: [] },
+          context: null,
+          profile: null,
         },
         beforeCreate: function () {
           console.log("liff init")
@@ -246,42 +229,49 @@
         mounted: function () {
           console.log("[liff] " + liff.getOS())
           this.getProfile()
-          console.log("done")
+          this.context = liff.getContext();
+          console.log(this.context);
+        },
+        computed: {
+          show_records: function () {
+            return this.records
+          },
         },
         methods: {
           create_new_good: function () {
             console.log("create_new_good")
             var new_id = Math.floor(Date.now())
-            this.new_record.goods.push({
+            this.current_record.goods.push({
               id: new_id,
-              goods: "",
+              item_name: "",
               sweetness_level: "正常",
               amount_of_ice: "正常",
-              number: 1
+              number: "1"
             })
           },
           destory_good: function (good) {
-            var index = this.new_record.goods.findIndex(function (_good) {
+            var index = this.current_record.goods.findIndex(function (_good) {
               return good.id == _good.id
             })
-            this.new_record.goods.splice(index, 1)
+            this.current_record.goods.splice(index, 1)
           },
           send_order: function () {
             let _this = this
             liff.sendMessages([
               {
                 type: 'text',
-                text: JSON.stringify(_this.new_record),
+                text: JSON.stringify({ "context": _this.context, "current_record": _this.current_record.goods }),
               }
             ])
               .then(() => {
                 console.log('message sent');
+                $('#submintModal').modal('hide')
+                liff.closeWindow();
               })
               .catch((err) => {
                 console.log('error', err);
               });
-            $('#submintModal').modal('hide')
-            liff.closeWindow();
+
           },
           getProfile: function () {
             let _this = this
