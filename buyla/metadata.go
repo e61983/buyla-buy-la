@@ -6,7 +6,7 @@ type Group struct {
 }
 
 type Record struct {
-	UserProfile *Profile `json:"username"`
+	UserProfile *Profile `json:"user_profile"`
 	Goods       []*Good  `json:"goods"`
 	Comment     string   `json:"comment"`
 }
@@ -42,6 +42,11 @@ func NewGroup() *Group {
 	test_uid := "test-uid"
 	test_profile := NewProfile("星期天配音是對的", "https://randomuser.me/api/portraits/lego/5.jpg")
 	g.Records[test_uid] = NewRecord(test_profile)
+
+	test_uid = "test-uid2"
+	test_profile = NewProfile("星期天配音是不對的", "https://randomuser.me/api/portraits/lego/4.jpg")
+	g.Records[test_uid] = NewRecord(test_profile)
+
 	g.IsOpen = true
 	return g
 }

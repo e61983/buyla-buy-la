@@ -29,10 +29,10 @@ func getOrderParameter(r *http.Request) (gid, uid string) {
 
 func (this *Api) HandleGetOrders(w http.ResponseWriter, r *http.Request) {
 	gid, _ := getOrderParameter(r)
-	group := this.data.Groups[gid]
+	records := this.data.Groups[gid].Records
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(group)
+	json.NewEncoder(w).Encode(records)
 	return
 }
 

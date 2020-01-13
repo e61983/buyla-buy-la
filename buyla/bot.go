@@ -56,7 +56,7 @@ func getRecordContents(group *Group) linebot.FlexContainer {
 					Weight:  linebot.FlexTextWeightTypeBold,
 					Align:   linebot.FlexComponentAlignTypeStart,
 					Gravity: linebot.FlexComponentGravityTypeCenter,
-					Text: record.UserProfile.DisplayName,
+					Text:    record.UserProfile.DisplayName,
 				},
 			},
 		}
@@ -69,7 +69,7 @@ func getRecordContents(group *Group) linebot.FlexContainer {
 					Size:    linebot.FlexTextSizeTypeSm,
 					Align:   linebot.FlexComponentAlignTypeStart,
 					Gravity: linebot.FlexComponentGravityTypeCenter,
-					Text: "•" + v.ItemName + " " + v.SweetnessLevel + " " + v.AmountOfIce + " x " + v.Number,
+					Text:    "•" + v.ItemName + " " + v.SweetnessLevel + " " + v.AmountOfIce + " x " + v.Number,
 				})
 		}
 		return box
@@ -156,12 +156,46 @@ func (this *Bot) getProfile(gid, uid string) (*linebot.UserProfileResponse, erro
 	}
 }
 
-func (this *Bot) replyMessage(replyToken string, messages ...linebot.SendingMessage) *linebot.ReplyMessageCall {
+func (this *Bot) replyMessage(replyToken, gid string, messages ...linebot.SendingMessage) *linebot.ReplyMessageCall {
+	isOpen := false
+	if _, ok := this.data.Groups[gid]; ok {
+		isOpen = this.data.Groups[gid].IsOpen
+	}
+	if isOpen {
+		contents := &linebot.BubbleContainer{
+			Type: linebot.FlexContainerTypeBubble,
+			Body: &linebot.BoxComponent{
+				Type:   linebot.FlexComponentTypeBox,
+				Layout: linebot.FlexBoxLayoutTypeVertical,
+				Contents: []linebot.FlexComponent{
+					&linebot.BoxComponent{
+						Type:    linebot.FlexComponentTypeBox,
+						Layout:  linebot.FlexBoxLayoutTypeHorizontal,
+						Spacing: linebot.FlexComponentSpacingTypeSm,
+						Contents: []linebot.FlexComponent{
+							&linebot.ButtonComponent{
+								Type:    linebot.FlexComponentTypeButton,
+								Style:   linebot.FlexButtonStyleTypePrimary,
+								Height:  linebot.FlexButtonHeightTypeSm,
+								Gravity: linebot.FlexComponentGravityTypeCenter,
+								Action: &linebot.URIAction{
+									Label: "+1",
+									URI:   "https://liff.line.me/1602541695-bYKBPBe6",
+								},
+							},
+						},
+					},
+				},
+			},
+		}
+		messages = append(messages, linebot.NewFlexMessage("+1", contents))
+	}
+
 	return this.bot.ReplyMessage(replyToken, messages...)
 }
 
-func (this *Bot) replyText(replyToken, text string) error {
-	if _, err := this.replyMessage(replyToken, linebot.NewTextMessage(text)).Do(); err != nil {
+func (this *Bot) replyText(replyToken, gid, text string) error {
+	if _, err := this.replyMessage(replyToken, gid, linebot.NewTextMessage(text)).Do(); err != nil {
 		return err
 	}
 	return nil
@@ -175,10 +209,11 @@ func (this *Bot) handleText(message *linebot.TextMessage, replyToken string, sou
 		gid := getGID(source)
 		profile, err := this.getProfile(gid, uid)
 		if err != nil {
-			return this.replyText(replyToken, err.Error())
+			return this.replyText(replyToken, gid, err.Error())
 		}
 		if _, err := this.replyMessage(
 			replyToken,
+			gid,
 			linebot.NewTextMessage("使用者:"+profile.DisplayName),
 		).Do(); err != nil {
 			return err
@@ -202,6 +237,7 @@ func (this *Bot) handleText(message *linebot.TextMessage, replyToken string, sou
 		}
 		if _, err := this.replyMessage(
 			replyToken,
+			getGID(source),
 			linebot.NewFlexMessage("Menu-"+TestCommand_LIFF_Test, contents),
 		).Do(); err != nil {
 			return err
@@ -211,7 +247,7 @@ func (this *Bot) handleText(message *linebot.TextMessage, replyToken string, sou
 		gid := getGID(source)
 		profile, err := this.getProfile(gid, uid)
 		if err != nil {
-			return this.replyText(replyToken, err.Error())
+			return this.replyText(replyToken, gid, err.Error())
 		}
 		displayName := profile.DisplayName
 		testRecord := &Record{
@@ -224,22 +260,23 @@ func (this *Bot) handleText(message *linebot.TextMessage, replyToken string, sou
 		testRecordJSON := new(bytes.Buffer)
 		json.NewEncoder(testRecordJSON).Encode(&testRecord)
 		if err != nil {
-			return this.replyText(replyToken, err.Error())
+			return this.replyText(replyToken, gid, err.Error())
 		}
 		client := http.Client{}
 		//TODO show usgin variable
 		url := this.baseUrl + "/api/v1/" + gid + "/order/" + uid
 		req, err := http.NewRequest(http.MethodPost, url, testRecordJSON)
 		if err != nil {
-			return this.replyText(replyToken, err.Error())
+			return this.replyText(replyToken, gid, err.Error())
 		}
 		req.Header.Set("Content-Type", "application/json; charset=UTF-8")
 		_, err = client.Do(req)
 		if err != nil {
-			return this.replyText(replyToken, err.Error())
+			return this.replyText(replyToken, gid, err.Error())
 		}
 		if _, err = this.replyMessage(
 			replyToken,
+			gid,
 			linebot.NewTextMessage(displayName+"建立了測試訂點單"),
 		).Do(); err != nil {
 			return err
@@ -251,22 +288,23 @@ func (this *Bot) handleText(message *linebot.TextMessage, replyToken string, sou
 		url := this.baseUrl + "/api/v1/" + gid + "/order/" + uid
 		req, err := http.NewRequest(http.MethodDelete, url, nil)
 		if err != nil {
-			return this.replyText(replyToken, err.Error())
+			return this.replyText(replyToken, gid, err.Error())
 		}
 		req.Header.Set("Content-Type", "application/json; charset=UTF-8")
 		res, err := client.Do(req)
 		if err != nil {
-			return this.replyText(replyToken, err.Error())
+			return this.replyText(replyToken, gid, err.Error())
 		} else {
 			log.Println(res)
 		}
 
 		profile, err := this.getProfile(gid, uid)
 		if err != nil {
-			return this.replyText(replyToken, err.Error())
+			return this.replyText(replyToken, gid, err.Error())
 		}
 		if _, err = this.replyMessage(
 			replyToken,
+			gid,
 			linebot.NewTextMessage("刪除了"+profile.DisplayName+"的測試訂點單"),
 		).Do(); err != nil {
 			return err
@@ -305,6 +343,7 @@ func (this *Bot) handleText(message *linebot.TextMessage, replyToken string, sou
 
 		if _, err := this.replyMessage(
 			replyToken,
+			getGID(source),
 			linebot.NewFlexMessage("Menu-"+Command_RD, contents),
 		).Do(); err != nil {
 			return err
@@ -313,7 +352,7 @@ func (this *Bot) handleText(message *linebot.TextMessage, replyToken string, sou
 	case Command_Open:
 		gid := getGID(source)
 		if gid == "" {
-			return this.replyText(replyToken, "'["+keyword+"]'只能在群組裡面使用喔!")
+			return this.replyText(replyToken, gid, "'["+keyword+"]'只能在群組裡面使用喔!")
 		}
 
 		if _, ok := this.data.Groups[gid]; !ok {
@@ -325,49 +364,50 @@ func (this *Bot) handleText(message *linebot.TextMessage, replyToken string, sou
 				log.Println("[CLEAN]", gid)
 			} else {
 				log.Println("[ABORT]", gid)
-				return this.replyText(replyToken, "已經在開了喔~!")
+				return this.replyText(replyToken, gid, "已經在開了喔~!")
 			}
 		}
 
 		this.data.Groups[gid].IsOpen = true
 		log.Println("[OPEN]", gid)
-		return this.replyText(replyToken, "開團啦~~!!!!! ")
+		return this.replyText(replyToken, gid, "開團啦~~!!!!! ")
 
 	case Command_Close:
 		gid := getGID(source)
 		if gid == "" {
-			return this.replyText(replyToken, "'["+keyword+"]'只能在群組裡面使用喔!")
+			return this.replyText(replyToken, gid, "'["+keyword+"]'只能在群組裡面使用喔!")
 		}
 		if _, ok := this.data.Groups[gid]; ok && this.data.Groups[gid].IsOpen == true {
 			this.data.Groups[gid].IsOpen = false
 			log.Println("[CLOSE]", gid)
 		} else {
-			return this.replyText(replyToken, "現在還沒有開始揪團~\n 大家都在等你開喔~!! XD")
+			return this.replyText(replyToken, gid, "現在還沒有開始揪團~\n 大家都在等你開喔~!! XD")
 		}
 		if _, err := this.replyMessage(
 			replyToken,
+			gid,
 			linebot.NewTextMessage("熱騰騰的明細出來啦~~"),
 			linebot.NewFlexMessage("明細", getRecordContents(this.data.Groups[gid])),
 		).Do(); err != nil {
 			return err
 		}
-		//return this.replyText(replyToken, "結單啦~!")
 	case Command_Show:
 		gid := getGID(source)
 		log.Println("[SHOW]", gid)
 		if gid == "" {
-			return this.replyText(replyToken, "'["+keyword+"]'只能在群組裡面使用喔!")
+			return this.replyText(replyToken, gid, "'["+keyword+"]'只能在群組裡面使用喔!")
 		}
 
 		var group *Group
 		if _, ok := this.data.Groups[gid]; ok {
 			group = this.data.Groups[gid]
 		} else {
-			return this.replyText(replyToken, "還沒有開團過喔~!\n")
+			return this.replyText(replyToken, gid, "還沒有開團過喔~!\n")
 		}
 
 		if _, err := this.replyMessage(
 			replyToken,
+			gid,
 			linebot.NewFlexMessage("明細", getRecordContents(group)),
 		).Do(); err != nil {
 			return err
@@ -436,6 +476,7 @@ func (this *Bot) handleText(message *linebot.TextMessage, replyToken string, sou
 
 		if _, err := this.replyMessage(
 			replyToken,
+			getGID(source),
 			linebot.NewFlexMessage("Menu-"+Command_Help, contents),
 		).Do(); err != nil {
 			return err
@@ -443,6 +484,7 @@ func (this *Bot) handleText(message *linebot.TextMessage, replyToken string, sou
 	case Surprise_1:
 		if _, err := this.replyMessage(
 			replyToken,
+			getGID(source),
 			linebot.NewStickerMessage("11537", "52002739"),
 		).Do(); err != nil {
 			return err
