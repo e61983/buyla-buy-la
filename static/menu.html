@@ -119,8 +119,8 @@
                           </ul>
                         </div>
                         <div class="col-md-3 col mt-2">
-                          <button type=button
-                            class="btn btn-outline-primary btn-block">跟{{record.user_profile.display_name}}一樣</button>
+                          <button type=button class="btn btn-outline-primary btn-block"
+                            @click="same_as(record.goods)">跟{{record.user_profile.display_name}}一樣</button>
                         </div>
                       </div>
                     </div>
@@ -157,7 +157,8 @@
                 <div class="row align-items-center flex-column">
                   <div class="col">
                     <ul class="mb-0" v-for="(good, sub_index) in current_record.goods" :key="sub_index">
-                      <li>{{good.goods}} {{good.sweetness_level}} {{good.amount_of_ice}} * {{good.number}}</li>
+                      <li>{{good.item_name}} {{good.sweetness_level}} {{good.amount_of_ice}} * {{good.number}}
+                        ({{good.comment}})</li>
                     </ul>
                   </div>
                 </div>
@@ -202,6 +203,7 @@
           context: null,
           profile: null,
           isLineLogined: false,
+          apiUrl: "https://" + window.location.hostname + "/api/v1/",
         },
         beforeCreate: function () {
         },
@@ -213,7 +215,6 @@
                 liff.login()
               } else {
                 vm.isLineLogined = true
-                console.log("isLineLogined")
               }
             }
           ).then(
@@ -226,11 +227,9 @@
             vm.context = liff.getContext()
           }).then(function () {
             //let gid=vm.context.groupId
-            let gid = "test"
-            let uid = "test-uid"
             //let uid=vm.profile.userId
-            let baseurl = "https://" + window.location.hostname + "/api/v1/" + gid
-            let url = baseurl + "/orders"
+            let gid = "test"
+            let url = vm.apiUrl + gid + "/orders"
             axios.get(url).then(function (resp) {
               vm.records = vm.obj_to_map(resp.data)
               console.log(vm.records)
@@ -264,7 +263,8 @@
               item_name: "",
               sweetness_level: "正常",
               amount_of_ice: "正常",
-              number: "1"
+              number: "1",
+              comment: ""
             })
           },
           destory_good: function (good) {
@@ -274,28 +274,55 @@
             this.current_record.goods.splice(index, 1)
           },
           send_order: function () {
-            let _this = this
-            liff.sendMessages([
-              {
-                type: 'text',
-                text: JSON.stringify({ "context": _this.context, "current_record": _this.current_record.goods }),
-              }
-            ])
-              .then(() => {
-                console.log('message sent');
-                $('#submintModal').modal('hide')
-                liff.closeWindow();
+            let vm = this
+            //let gid=vm.context.groupId
+            let uid = vm.profile.userId
+            let gid = "test"
+            let url = vm.apiUrl + gid + "/order/" + uid
+            axios.delete(url).then(function () {
+              axios.post(url, {
+                "user_profile": {
+                  "display_name": vm.profile.displayName,
+                  "photo_url": vm.profile.pictureUrl
+                },
+                "goods": vm.current_record.goods,
+                "comment": vm.current_record.comment,
               })
-              .catch((err) => {
-                console.log('error', err);
-              });
-
+            }).then(function () {
+              if (vm.context !== null) {
+                let goods = ""
+                vm.current_record.goods.forEach(function (value, index) {
+                  goods += "\n •" + value.item_name + " " + value.sweetness_level + " " + value.amount_of_ice + "*" + value.number + "(" + value.comment + ")\n"
+                })
+                liff.sendMessages([
+                  {
+                    type: 'text',
+                    text: "[我要]" + goods,
+                  }
+                ])
+                  .then(() => {
+                    liff.closeWindow();
+                  })
+                  .catch((err) => {
+                    console.log('error', err);
+                  });
+              }
+            }).then(function () {
+              $('#submintModal').modal('hide')
+            }).catch(function (error) {
+              console.log('error', err);
+            })
           },
           obj_to_map: function (obj) {
             const mp = new Map;
             Object.keys(obj).forEach(k => { mp.set(k, obj[k]) });
             return mp;
           },
+          same_as: function (goods) {
+            console.log(this.current_record.goods)
+            console.log(goods)
+            this.current_record.goods = goods
+          }
         }
       })
     </script>
