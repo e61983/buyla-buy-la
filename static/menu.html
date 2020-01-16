@@ -9,6 +9,8 @@
   <!-- Bootstrap CSS -->
   <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.2.1/css/bootstrap.min.css"
     integrity="sha384-GJzZqFGwb1QTTN6wy59ffF1BuGJpLSa9DkKMp0DgiMDm4iYMj70gZWKYbI706tWS" crossorigin="anonymous">
+  <!-- Fontawesome-->
+  <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.11.2/css/all.css">
   <title>揪團啦~!</title>
 </head>
 
@@ -20,8 +22,14 @@
           <div class="card-body">
             <div class="row mb-2 align-items-center">
               <div class="col-md-2 col-12 d-flex flex-column  align-items-center">
-                <img :src="profile.pictureUrl" width="128" height="128" class="mr-3" style="border-radius:100%">
-                <div class="h5">{{profile.displayName}}</div>
+                <div v-if="isLineLogined === true" class="col-md-2 col-12 d-flex flex-column  align-items-center">
+                  <img :src="profile.pictureUrl" width="128" height="128" class="mr-3" style="border-radius:100%">
+                  <div class="h5">{{profile.displayName}}</div>
+                </div>
+              </div>
+              <div v-else class="col-md-2 col-12 d-flex flex-column  align-items-center">
+                <img src="#" width="128" height="128" class="mr-3" style="border-radius:100%">
+                <div class="h5">尚未登入</div>
               </div>
               <div class="col-md-10 col-12">
                 <div class="border" style="border-radius: 5px;">
@@ -121,7 +129,12 @@
               </div>
             </div>
           </div>
-          <div class="card-footer"></div>
+          <div class="card-footer">
+            <div>
+              <i v-if="context === null" class="fab fa-line text-success"></i>
+              <span v-else>context: {{ context }}</span>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -172,69 +185,74 @@
       crossorigin="anonymous"></script>
     <!-- Vue -->
     <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+    <!-- liff -->
     <script src="https://static.line-scdn.net/liff/edge/2.1/sdk.js"></script>
     <!-- axios -->
-
-    <!--
     <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+    <!--
+    
     <script src="https://cdn.jsdelivr.net/npm/vue"></script>
   -->
     <script>
       var app = new Vue({
         el: '#app',
         data: {
-          records: {
-            "test-uid": {
-              "user_profile": {
-                "display_name": "星期天配音是對的",
-                "photo_url": "https://randomuser.me/api/portraits/men/71.jpg"
-              },
-              "goods": [
-                {
-                  "item_name": "大平台",
-                  "sweetness_level": "大大",
-                  "amount_of_ice": "大",
-                  "number": "無限"
-                }
-              ],
-              "comment": ""
-            },
-            "test-uid2": {
-              "user_profile": {
-                "display_name": "星期天配音是不對的",
-                "photo_url": "https://randomuser.me/api/portraits/women/91.jpg"
-              },
-              "goods": [
-                {
-                  "item_name": "大平台",
-                  "sweetness_level": "大大",
-                  "amount_of_ice": "大",
-                  "number": "無限"
-                }
-              ],
-              "comment": ""
-            }
-          },
+          records: null,
           current_record: { goods: [] },
           context: null,
           profile: null,
+          isLineLogined: false,
         },
         beforeCreate: function () {
-          console.log("liff init")
-          liff.init({ liffId: "1602541695-bYKBPBe6" })
-          if (!liff.isLoggedIn()) {
-            liff.login();
-          }
         },
         mounted: function () {
-          console.log("[liff] " + liff.getOS())
-          this.getProfile()
-          this.context = liff.getContext();
-          console.log(this.context);
+          let vm = this
+          liff.init({ liffId: "1602541695-bYKBPBe6" }).then(
+            function () {
+              if (!liff.isLoggedIn()) {
+                liff.login()
+              } else {
+                vm.isLineLogined = true
+                console.log("isLineLogined")
+              }
+            }
+          ).then(
+            function () {
+              liff.getProfile().then(function (profile) {
+                vm.profile = profile
+              })
+            }
+          ).then(function () {
+            vm.context = liff.getContext()
+          }).then(function () {
+            //let gid=vm.context.groupId
+            let gid = "test"
+            let uid = "test-uid"
+            //let uid=vm.profile.userId
+            let baseurl = "https://" + window.location.hostname + "/api/v1/" + gid
+            let url = baseurl + "/orders"
+            axios.get(url).then(function (resp) {
+              vm.records = vm.obj_to_map(resp.data)
+              console.log(vm.records)
+            })
+          }).catch(function (error) {
+            console.log('Error: ' + error)
+          })
         },
         computed: {
           show_records: function () {
-            return this.records
+            let list = [];
+            let vm = this
+            if (vm.records !== null) {
+              vm.records.forEach(function (value, key) {
+                if (key !== vm.profile.userId) {
+                  list.push(value)
+                } else {
+                  vm.current_record = value
+                }
+              })
+            }
+            return list;
           },
         },
         methods: {
@@ -273,19 +291,13 @@
               });
 
           },
-          getProfile: function () {
-            let _this = this
-            if (liff.isLoggedIn()) {
-              liff.getProfile().then(function (profile) {
-                _this.profile = profile
-              }).catch(function (error) {
-                consloe.log('Error getting profile: ' + error)
-              })
-            }
+          obj_to_map: function (obj) {
+            const mp = new Map;
+            Object.keys(obj).forEach(k => { mp.set(k, obj[k]) });
+            return mp;
           },
         }
       })
-
     </script>
   </div>
 </body>
