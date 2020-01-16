@@ -27,26 +27,59 @@ func getOrderParameter(r *http.Request) (gid, uid string) {
 	return
 }
 
+func (this *Api) checkGroupIsOpen(gid string) error {
+	if _, ok := this.data.Groups[gid]; !ok {
+		return fmt.Errorf("Is not open")
+	}
+	if !this.data.Groups[gid].IsOpen {
+		return fmt.Errorf("Is not open")
+	}
+	return nil
+}
+
 func (this *Api) HandleGetOrders(w http.ResponseWriter, r *http.Request) {
 	gid, _ := getOrderParameter(r)
-	records := this.data.Groups[gid].Records
+	err := this.checkGroupIsOpen(gid)
+	if err != nil {
+		//TODO return error message
+		w.WriteHeader(http.StatusBadRequest)
+		fmt.Fprintf(w, `{"error":"%s"}`, err)
+		return
+	}
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
+	records := this.data.Groups[gid].Records
 	json.NewEncoder(w).Encode(records)
 	return
 }
 
+func (this *Api) checkUid(gid, uid string) error {
+	return nil
+}
+
 func (this *Api) HandleGetCheck(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
-	isValid := true
+	gid, uid := getOrderParameter(r)
 
-	if isValid {
-		w.WriteHeader(http.StatusOK)
-	} else {
+	err := this.checkGroupIsOpen(gid)
+	if err != nil {
+		//TODO return error message
 		w.WriteHeader(http.StatusBadRequest)
+		fmt.Fprintf(w, `{"error":"%s"}`, err)
+		return
 	}
 
-	json.NewEncoder(w).Encode(&isValid)
+	err = this.checkUid(gid, uid)
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		fmt.Fprintf(w, `{"error":"%s"}`, err)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+
+	// for debug
+	//json.NewEncoder(w).Encode(&isValid)
 
 	return
 }
@@ -55,11 +88,22 @@ func (this *Api) HandleGetOrder(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	gid, uid := getOrderParameter(r)
 	group := this.data.Groups[gid]
-	if _, ok := group.Records[uid]; !ok {
+
+	err := this.checkGroupIsOpen(gid)
+	if err != nil {
 		//TODO return error message
 		w.WriteHeader(http.StatusBadRequest)
+		fmt.Fprintf(w, `{"error":"%s"}`, err)
 		return
 	}
+
+	err = this.checkUid(gid, uid)
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		fmt.Fprintf(w, `{"error":"%s"}`, err)
+		return
+	}
+
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(group.Records[uid].Goods)
 	return
@@ -76,23 +120,33 @@ func (this *Api) HandlePutOrder(w http.ResponseWriter, r *http.Request) {
 
 func (this *Api) HandlePostOrder(w http.ResponseWriter, r *http.Request) {
 	gid, uid := getOrderParameter(r)
+	err := this.checkGroupIsOpen(gid)
+	if err != nil {
+		//TODO return error message
+		w.WriteHeader(http.StatusBadRequest)
+		w.Header().Set("Content-Type", "application/json")
+		fmt.Fprintf(w, `{"error":"%s"}`, err)
+		return
+	}
+
+	err = this.checkUid(gid, uid)
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		fmt.Fprintf(w, `{"error":"%s"}`, err)
+		return
+	}
+
 	if r.Body == nil {
 		//TODO return error message
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
+
 	var record Record
-	err := json.NewDecoder(r.Body).Decode(&record)
+	err = json.NewDecoder(r.Body).Decode(&record)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		fmt.Fprintf(w, "%s", err)
-		return
-	}
-
-	if _, ok := this.data.Groups[gid]; !ok {
-		w.WriteHeader(http.StatusBadRequest)
-		w.Header().Set("Content-Type", "application/json")
-		fmt.Fprintf(w, "%s", `{"message":"Buyla group not open"}`)
 		return
 	}
 
@@ -113,15 +167,23 @@ func (this *Api) HandlePostOrder(w http.ResponseWriter, r *http.Request) {
 
 func (this *Api) HandleDeleteOrder(w http.ResponseWriter, r *http.Request) {
 	gid, uid := getOrderParameter(r)
-	group := this.data.Groups[gid]
-
-	if _, ok := this.data.Groups[gid]; !ok {
+	err := this.checkGroupIsOpen(gid)
+	if err != nil {
+		//TODO return error message
 		w.WriteHeader(http.StatusBadRequest)
 		w.Header().Set("Content-Type", "application/json")
-		fmt.Fprintf(w, "%s", `{"message":"Buyla group not open"}`)
+		fmt.Fprintf(w, `{"error":"%s"}`, err)
 		return
 	}
 
+	err = this.checkUid(gid, uid)
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		fmt.Fprintf(w, `{"error":"%s"}`, err)
+		return
+	}
+
+	group := this.data.Groups[gid]
 	if _, ok := group.Records[uid]; !ok {
 		w.WriteHeader(http.StatusOK)
 		return
