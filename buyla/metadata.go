@@ -43,11 +43,11 @@ func NewGroup() *Group {
 	g.Records = make(map[string]*Record)
 	// TODO: just for test
 	test_uid := "test-uid"
-	test_profile := NewProfile("星期天配音是對的", "https://randomuser.me/api/portraits/lego/5.jpg")
+	test_profile := NewProfile("星期天配音是對的", "https://purr.objects-us-east-1.dream.io/i/L5rgK.jpg")
 	g.Records[test_uid] = NewRecord(test_profile)
 
 	test_uid = "test-uid2"
-	test_profile = NewProfile("星期天配音是不對的", "https://randomuser.me/api/portraits/lego/4.jpg")
+	test_profile = NewProfile("星期天配音是不對的", "https://purr.objects-us-east-1.dream.io/i/KiX13.png")
 	g.Records[test_uid] = NewRecord(test_profile)
 
 	g.IsOpen = true
