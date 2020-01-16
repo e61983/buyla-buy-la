@@ -253,7 +253,7 @@ func (this *Bot) handleText(message *linebot.TextMessage, replyToken string, sou
 		testRecord := &Record{
 			UserProfile: &Profile{DisplayName: displayName, PhotoUrl: "https://randomuser.me/api/portraits/women/91.jpg"},
 			Goods: []*Good{
-				&Good{"休假", "正常", "正常", "很多很多"},
+				NewGood("英文", "少糖", "去冰", "1", "小", "選一個未來"),
 			},
 			Comment: "在有跟沒有之間",
 		}

@@ -21,6 +21,9 @@ type Good struct {
 	SweetnessLevel string `json:"sweetness_level"`
 	AmountOfIce    string `json:"amount_of_ice"`
 	Number         string `json:"number"`
+	Size           string `json:"size"`
+	Comment        string `json:"comment"`
+	id             int    `json:"id"`
 }
 
 type MetaData struct {
@@ -59,10 +62,17 @@ func NewRecord(profile *Profile) *Record {
 	r := &Record{UserProfile: profile}
 	r.Goods = make([]*Good, 0, 10)
 	// TODO: just for test
-	r.Goods = append(r.Goods, NewGood("大平台", "大大", "大", "無限"))
+	r.Goods = append(r.Goods, NewGood("國文", "無糖", "熱的", "1", "大", "在有跟沒有之間"))
 	return r
 }
 
-func NewGood(itemName, sweetnessLevel, amountOfIce, number string) *Good {
-	return &Good{ItemName: itemName, SweetnessLevel: sweetnessLevel, AmountOfIce: amountOfIce, Number: number}
+func NewGood(itemName, sweetnessLevel, amountOfIce, number, size, comment string) *Good {
+	return &Good{
+		ItemName:       itemName,
+		SweetnessLevel: sweetnessLevel,
+		AmountOfIce:    amountOfIce,
+		Number:         number,
+		Size:           size,
+		Comment:        comment,
+	}
 }
