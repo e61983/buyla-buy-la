@@ -36,6 +36,21 @@ func (this *Api) HandleGetOrders(w http.ResponseWriter, r *http.Request) {
 	return
 }
 
+func (this *Api) HandleGetCheck(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	isValid := true
+
+	if isValid {
+		w.WriteHeader(http.StatusOK)
+	} else {
+		w.WriteHeader(http.StatusBadRequest)
+	}
+
+	json.NewEncoder(w).Encode(&isValid)
+
+	return
+}
+
 func (this *Api) HandleGetOrder(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	gid, uid := getOrderParameter(r)

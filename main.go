@@ -32,6 +32,7 @@ func main() {
 	v1.HandleFunc("/{gid}/order/{uid}", api.HandlePostOrder).Methods(http.MethodPost)
 	v1.HandleFunc("/{gid}/order/{uid}", api.HandleDeleteOrder).Methods(http.MethodDelete)
 	v1.HandleFunc("/{gid}/order/{uid}", api.HandlePatchOrder).Methods(http.MethodPatch)
+	v1.HandleFunc("/{gid}/check/{uid}", api.HandleGetCheck).Methods(http.MethodGet)
 
 	r.HandleFunc("/callback", bot.Callback)
 	r.PathPrefix("/static/").Handler(http.StripPrefix("/static/", http.FileServer(http.Dir("static"))))
