@@ -21,8 +21,8 @@
         <div class="card my-1">
           <div class="card-body">
             <div class="row mb-2 align-items-center">
-              <div v-if="isLineLogined === true" class="col-md-3 col-12 text-center">
-                <img :src="profile.pictureUrl" width="128px" height="128px"class="mx-1" style="border-radius:100%">
+              <div v-if="isLineLogined === true" class="col-md-3 col-12 text-center"> <img :src="profile.pictureUrl"
+                  width="128px" height="128px" class="mx-1" style="border-radius:100%">
                 <div class="h5">{{profile.displayName}}</div>
               </div>
               <div v-else class="col-md-3 col-12 d-flex flex-column  align-items-center">
@@ -34,14 +34,14 @@
                   <form action="">
                     <!-- goods-->
                     <div class="form-row mx-sm-2 mx-1 mt-2" v-for="(good,index) in current_record.goods" :key="index">
-                      <div class="col-md">
+                      <div class="col-md-12">
                         <div class="form-group">
                           <label for="item_name">品項</label>
                           <input class="form-control" type="text" id="item_name" placeholder="請輸入品名"
                             v-model=good.item_name>
                         </div>
                       </div>
-                      <div class="col-md-2">
+                      <div class="col-md-3">
                         <div class="form-group">
                           <label for="sweeting_level">甜度</label>
                           <select class="form-control" type="text" id="sweeting_level" v-model="good.sweetness_level">
@@ -53,7 +53,7 @@
                           </select>
                         </div>
                       </div>
-                      <div class="col-md-2">
+                      <div class="col-md-3">
                         <div class="form-group">
                           <label for="amount_of_icd">冰量</label>
                           <select class="form-control" type="text" id="amount_of_icd" v-model="good.amount_of_ice">
@@ -67,7 +67,18 @@
                           </select>
                         </div>
                       </div>
-                      <div class="col-md">
+                      <div class="col-md-3">
+                        <div class="form-group">
+                          <label for="number">大小</label>
+                          <select class="form-control" type="text" id="size" v-model="good.size">
+                            <option value="L" selected>L</option>
+                            <option value="M">M</option>
+                            <option value="S">S</option>
+                            <option value="XL">XL</option>
+                          </select>
+                        </div>
+                      </div>
+                      <div class="col-md-3">
                         <div class="form-group">
                           <label for="number">數量</label>
                           <select class="form-control" type="number" id="number" v-model="good.number">
@@ -79,19 +90,29 @@
                           </select>
                         </div>
                       </div>
-                      <div class="col-md-2 d-flex align-items-center">
-                        <button type="button" class="btn btn-outline-danger mt-md-3 mb-3 mb-md-0 btn-block"
+                      <div class="col-md-12">
+                        <div class="form-group">
+                          <label for="item_name">備註</label>
+                          <input class="form-control" type="text" id="comment" placeholder="(Optional) 想附註的事"
+                            v-model=good.comment>
+                        </div>
+                      </div>
+                      <div class="col-md text-center">
+                        <button type="button" class="btn-sm btn-outline-danger btn-block"
                           @click="destory_good(good)">移除</button>
                       </div>
                     </div>
+
                     <!--end goods-->
 
-                    <div class="d-flex ">
-                      <button type="button" class="btn btn-outline-success btn-sm mx-2"
-                        @click="create_new_good">新增一個新的品項</button>
+                    <div class="row">
+                      <div class="col text-center m-3">
+                        <button type="button" class="btn btn-outline-success btn-block"
+                          @click="create_new_good">新增一個新的品項</button>
+                      </div>
                     </div>
                     <div class="d-flex justify-content-center my-2">
-                      <button type="reset" class="btn btn-outline-danger mx-2">清除</button>
+                      <button type="reset" class="btn btn-outline-danger mx-2" @click="clean_goods">清除</button>
                       <button type="button" class="btn btn-success mx-2" data-toggle="modal"
                         data-target="#submintModal">送出</button>
                     </div>
@@ -103,7 +124,8 @@
             <!-- test vue -->
             <div class="row mb-2 align-items-center" v-for="(record, index) in show_records" :key="index">
               <div class="col-md-3 col-12 d-flex flex-column  align-items-center">
-                <img :src="record.user_profile.photo_url" width="128px" height="128px"class="mx-1" style="border-radius:100%">
+                <img :src="record.user_profile.photo_url" width="128px" height="128px" class="mx-1"
+                  style="border-radius:100%">
                 <div class="h5">{{record.user_profile.display_name}}</div>
               </div>
               <div class="col-md-9 col-12">
@@ -113,7 +135,9 @@
                       <div class="row align-items-center flex-column">
                         <div class="col">
                           <ul class="mb-0" v-for="(good, sub_index) in record.goods" :key="sub_index">
-                            <li>{{good.item_name}} {{good.sweetness_level}} {{good.amount_of_ice}} * {{good.number}}
+                            <li>
+                              {{good.item_name}} {{good.sweetness_level}} {{good.amount_of_ice}} {{good.size}} *
+                              {{good.number}} ({{good.comment}})
                             </li>
                           </ul>
                         </div>
@@ -156,7 +180,8 @@
                 <div class="row align-items-center flex-column">
                   <div class="col">
                     <ul class="mb-0" v-for="(good, sub_index) in current_record.goods" :key="sub_index">
-                      <li>{{good.item_name}} {{good.sweetness_level}} {{good.amount_of_ice}} * {{good.number}}
+                      <li>{{good.item_name}} {{good.sweetness_level}} {{good.amount_of_ice}} {{good.size}} *
+                        {{good.number}}
                         ({{good.comment}})</li>
                     </ul>
                   </div>
@@ -262,6 +287,7 @@
               item_name: "",
               sweetness_level: "正常",
               amount_of_ice: "正常",
+              size: "L",
               number: "1",
               comment: ""
             })
@@ -271,6 +297,10 @@
               return good.id == _good.id
             })
             this.current_record.goods.splice(index, 1)
+          },
+          clean_goods() {
+            let vm = this
+            vm.current_record.goods.splice(0, vm.current_record.goods.length)
           },
           send_order: function () {
             let vm = this
@@ -291,7 +321,7 @@
               if (vm.context !== null) {
                 let goods = ""
                 vm.current_record.goods.forEach(function (value, index) {
-                  goods += "\n •" + value.item_name + " " + value.sweetness_level + " " + value.amount_of_ice + "*" + value.number + "(" + value.comment + ")\n"
+                  goods += "\n •" + value.item_name + " " + value.sweetness_level + " " + value.amount_of_ice + " " + value.size + "*" + value.number + "(" + value.comment + ")"
                 })
                 liff.sendMessages([
                   {
