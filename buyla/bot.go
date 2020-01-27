@@ -3,6 +3,7 @@ package Buyla
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"github.com/line/line-bot-sdk-go/linebot"
 	"log"
 	"net/http"
@@ -14,6 +15,7 @@ const (
 	Command_Open                 string = "開團"
 	Command_Close                string = "結單"
 	Command_Show                 string = "明細"
+	Command_AddEcho              string = "我要"
 	Command_Help                 string = "說明"
 	Command_RD                   string = "工程模式"
 	TestCommand_Profile          string = "顯示使用者資訊"
@@ -69,7 +71,7 @@ func getRecordContents(group *Group) linebot.FlexContainer {
 					Size:    linebot.FlexTextSizeTypeSm,
 					Align:   linebot.FlexComponentAlignTypeStart,
 					Gravity: linebot.FlexComponentGravityTypeCenter,
-					Text:    "•" + v.ItemName + " " + v.SweetnessLevel + " " + v.AmountOfIce + " x " + v.Number,
+					Text:    "•" + v.ItemName + " " + v.SweetnessLevel + " " + v.AmountOfIce + " " + v.Size + " x " + v.Number + "(" + v.Comment + ")",
 				})
 		}
 		return box
@@ -117,8 +119,8 @@ func getRecordContents(group *Group) linebot.FlexContainer {
 	return contents
 }
 
-func getKeyWord(message string) string {
-	r := regexp.MustCompile(`^(@([^[]*))?\[[\s\n\t ]*([^[]*)[\s\n\t ]*\][\s\n\t ]*(.*)`)
+func getKeyWord(message string) (string, string) {
+	r := regexp.MustCompile(`^(@([^[]*))?\[[\s\n\t ]*([^[]*)[\s\n\t ]*\]([^$[]*)`)
 
 	message = strings.ReplaceAll(message, "［", "[")
 	message = strings.ReplaceAll(message, "］", "]")
@@ -126,9 +128,9 @@ func getKeyWord(message string) string {
 	token := r.FindAllStringSubmatch(message, 1)
 	if len(token) == 0 {
 		if strings.Contains(message, string(Surprise_1)) {
-			return Surprise_1
+			return Surprise_1, ""
 		} else {
-			return ""
+			return "", ""
 		}
 	}
 
@@ -136,7 +138,7 @@ func getKeyWord(message string) string {
 	keyword := strings.TrimSpace(token[0][3])
 	others := strings.TrimSpace(token[0][4])
 	log.Println("[COMMAND]", keyword, mentionName, others)
-	return keyword
+	return keyword, others
 }
 
 func NewBot(channelSecret, channelToken, BaseUrl string, data *MetaData) (*Bot, error) {
@@ -202,7 +204,7 @@ func (this *Bot) replyText(replyToken, gid, text string) error {
 }
 
 func (this *Bot) handleText(message *linebot.TextMessage, replyToken string, source *linebot.EventSource) error {
-	keyword := getKeyWord(message.Text)
+	keyword, others := getKeyWord(message.Text)
 	switch keyword {
 	case TestCommand_Profile:
 		uid := getUID(source)
@@ -411,6 +413,20 @@ func (this *Bot) handleText(message *linebot.TextMessage, replyToken string, sou
 			linebot.NewFlexMessage("明細", getRecordContents(group)),
 		).Do(); err != nil {
 			return err
+		}
+	case Command_AddEcho:
+		gid := getGID(source)
+		uid := getUID(source)
+		var group *Group
+		if _, ok := this.data.Groups[gid]; ok {
+			group = this.data.Groups[gid]
+		} else {
+			return fmt.Errorf("No gid (%s)", gid)
+		}
+		if record, ok := group.Records[uid]; ok {
+			return this.replyText(replyToken, gid, "好喔~"+record.UserProfile.DisplayName+"要\n"+others)
+		} else {
+			return fmt.Errorf("No uid (%s)", uid)
 		}
 	case Command_Help:
 		functionFlex := 3
