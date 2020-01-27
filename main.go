@@ -3,6 +3,7 @@ package main
 import (
 	"github.com/e61983/buyla-buy-la/buyla"
 	"github.com/gorilla/mux"
+	"github.com/rs/cors"
 	"log"
 	"net/http"
 	"os"
@@ -37,5 +38,6 @@ func main() {
 	r.HandleFunc("/callback", bot.Callback)
 	r.PathPrefix("/static/").Handler(http.StripPrefix("/static/", http.FileServer(http.Dir("static"))))
 	log.Println("Listen", os.Getenv("TEST_URL"), os.Getenv("PORT"))
-	log.Fatal(http.ListenAndServe(":"+os.Getenv("PORT"), r))
+	handler := cors.Default().Handler(r)
+	log.Fatal(http.ListenAndServe(":"+os.Getenv("PORT"), handler))
 }
