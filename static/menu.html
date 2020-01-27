@@ -154,8 +154,14 @@
           </div>
           <div class="card-footer">
             <div>
-              <i v-if="context === null" class="fab fa-line text-success"></i>
-              <span v-else>context: {{ context }}</span>
+              <a v-if="context !== null" class="fab fa-line text-success" data-toggle="collapse" data-target="#context">
+              </a>
+              <a v-else class="fab fa-line text-secondary" data-toggle="collapse" data-target="#context"> </a>
+              <div class="collapse multi-collapse" id="context">
+                <div class="card card-body">
+                  <span>context: {{ context }}</span>
+                </div>
+              </div>
             </div>
           </div>
         </div>
