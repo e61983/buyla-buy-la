@@ -21,17 +21,15 @@
         <div class="card my-1">
           <div class="card-body">
             <div class="row mb-2 align-items-center">
-              <div class="col-md-2 col-12 d-flex flex-column  align-items-center">
-                <div v-if="isLineLogined === true" class="col-md-2 col-12 d-flex flex-column  align-items-center">
-                  <img :src="profile.pictureUrl" width="128" height="128" class="mr-3" style="border-radius:100%">
-                  <div class="h5">{{profile.displayName}}</div>
-                </div>
+              <div v-if="isLineLogined === true" class="col-md-3 col-12 text-center">
+                <img :src="profile.pictureUrl" width="128px" height="128px"class="mx-1" style="border-radius:100%">
+                <div class="h5">{{profile.displayName}}</div>
               </div>
-              <div v-else class="col-md-2 col-12 d-flex flex-column  align-items-center">
-                <img src="#" width="128" height="128" class="mr-3" style="border-radius:100%">
+              <div v-else class="col-md-3 col-12 d-flex flex-column  align-items-center">
+                <img src="#" width="128px" height="128px" class="mr-3" style="border-radius:100%">
                 <div class="h5">尚未登入</div>
               </div>
-              <div class="col-md-10 col-12">
+              <div class="col-md-9 col-12">
                 <div class="border" style="border-radius: 5px;">
                   <form action="">
                     <!-- goods-->
@@ -48,10 +46,10 @@
                           <label for="sweeting_level">甜度</label>
                           <select class="form-control" type="text" id="sweeting_level" v-model="good.sweetness_level">
                             <option value="正常" selected>正常</option>
-                            <option value="2"></option>
-                            <option value="3"></option>
-                            <option value="4"></option>
-                            <option value="5"></option>
+                            <option value="少糖">少糖</option>
+                            <option value="半糖">半糖</option>
+                            <option value="微糖">微糖</option>
+                            <option value="無糖">無糖</option>
                           </select>
                         </div>
                       </div>
@@ -60,9 +58,11 @@
                           <label for="amount_of_icd">冰量</label>
                           <select class="form-control" type="text" id="amount_of_icd" v-model="good.amount_of_ice">
                             <option value="正常" selected>正常</option>
-                            <option value="2"></option>
-                            <option value="3"></option>
-                            <option value="4"></option>
+                            <option value="少冰">少冰</option>
+                            <option value="去冰">去冰</option>
+                            <option value="微冰">微冰</option>
+                            <option value="去冰">去冰</option>
+                            <option value="完全去冰">完全去冰</option>
                             <option value="熱的">熱的</option>
                           </select>
                         </div>
@@ -102,12 +102,11 @@
             </div>
             <!-- test vue -->
             <div class="row mb-2 align-items-center" v-for="(record, index) in show_records" :key="index">
-              <div class="col-md-2 col-12 d-flex flex-column  align-items-center">
-                <img :src="record.user_profile.photo_url" width="128px" height="128px" class="mr-3"
-                  style="border-radius:100%">
+              <div class="col-md-3 col-12 d-flex flex-column  align-items-center">
+                <img :src="record.user_profile.photo_url" width="128px" height="128px"class="mx-1" style="border-radius:100%">
                 <div class="h5">{{record.user_profile.display_name}}</div>
               </div>
-              <div class="col-md-10 col-12">
+              <div class="col-md-9 col-12">
                 <div class="" style="border-radius: 5px;">
                   <div class="card">
                     <div class="card-body">
@@ -118,8 +117,8 @@
                             </li>
                           </ul>
                         </div>
-                        <div class="col-md-3 col mt-2">
-                          <button type=button class="btn btn-outline-primary btn-block"
+                        <div class="col mt-2 text-center">
+                          <button type=button class="btn btn-outline-primary btn-sm-block"
                             @click="same_as(record.goods)">跟{{record.user_profile.display_name}}一樣</button>
                         </div>
                       </div>
