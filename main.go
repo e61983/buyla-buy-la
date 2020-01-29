@@ -38,6 +38,14 @@ func main() {
 	r.HandleFunc("/callback", bot.Callback)
 	r.PathPrefix("/static/").Handler(http.StripPrefix("/static/", http.FileServer(http.Dir("static"))))
 	log.Println("Listen", os.Getenv("TEST_URL"), os.Getenv("PORT"))
-	handler := cors.Default().Handler(r)
+
+	c := cors.New(cors.Options{
+		AllowedOrigins: []string{os.Getenv("TEST_URL")},
+		AllowedMethods: []string{http.MethodGet, http.MethodPost, http.MethodDelete},
+	})
+	handler := c.Handler(r)
+
+    // for test
+    // handler := cors.AllowAll().Handler(r)
 	log.Fatal(http.ListenAndServe(":"+os.Getenv("PORT"), handler))
 }
