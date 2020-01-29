@@ -23,7 +23,7 @@ type Good struct {
 	Number         string `json:"number"`
 	Size           string `json:"size"`
 	Comment        string `json:"comment"`
-	Id             int    `json:"id"`
+	Id             string `json:"id"`
 }
 
 type MetaData struct {
@@ -46,15 +46,15 @@ func NewGroup() *Group {
 	test_profile := NewProfile("星期天配音是對的", "https://purr.objects-us-east-1.dream.io/i/L5rgK.jpg")
 	g.Records[test_uid] = NewRecord(test_profile)
 	r := g.Records[test_uid]
-	r.Goods = append(r.Goods, NewGood("國文", "無糖", "熱的", "1", "L", "在有跟沒有之間", 1654))
-	r.Goods = append(r.Goods, NewGood("英文", "無糖", "熱的", "1", "XL", "在有跟沒有之間", 1432))
+	r.Goods = append(r.Goods, NewGood("國文", "無糖", "熱的", "1", "L", "在有跟沒有之間", "1654"))
+	r.Goods = append(r.Goods, NewGood("英文", "無糖", "熱的", "1", "XL", "在有跟沒有之間", "1432"))
 
 	test_uid = "test-uid2"
 	test_profile = NewProfile("星期天配音是不對的", "https://purr.objects-us-east-1.dream.io/i/KiX13.png")
 	g.Records[test_uid] = NewRecord(test_profile)
 	r = g.Records[test_uid]
-	r.Goods = append(r.Goods, NewGood("法文", "少糖", "去冰", "1", "S", "在有跟沒有之間", 987651))
-	r.Goods = append(r.Goods, NewGood("日文", "無糖", "熱的", "1", "M", "在有跟沒有之間", 9731))
+	r.Goods = append(r.Goods, NewGood("法文", "少糖", "去冰", "1", "S", "在有跟沒有之間", "987651"))
+	r.Goods = append(r.Goods, NewGood("日文", "無糖", "熱的", "1", "M", "在有跟沒有之間", "9731"))
 
 	g.IsOpen = true
 	return g
@@ -70,7 +70,7 @@ func NewRecord(profile *Profile) *Record {
 	return r
 }
 
-func NewGood(itemName, sweetnessLevel, amountOfIce, number, size, comment string, id int) *Good {
+func NewGood(itemName, sweetnessLevel, amountOfIce, number, size, comment, id string) *Good {
 	return &Good{
 		ItemName:       itemName,
 		SweetnessLevel: sweetnessLevel,
