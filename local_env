@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+
+export TEST_URL=https://1a1e7e5e.ngrok.io
+export PORT=8080
+export ChannelSecret=a53371f443233f86eca5435d54cab5b1
+export ChannelAccessToken=LTeqVHx3EuYZwRzo4zTWmjBqrzUuZEm3Xmh76V3Y/daHYnSmHA4VJxss4gV4mrA0zIoLzYCxsz/3UcWWGbFMyovPot7pa14k+S+hPsuukZ3S/0A177TLmRtUP1uYXleM2IjRDJE7nljtlLswRnM3VgdB04t89/1O/w1cDnyilFU=
