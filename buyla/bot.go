@@ -182,7 +182,7 @@ func (this *Bot) replyMessage(replyToken, gid string, messages ...linebot.Sendin
 								Gravity: linebot.FlexComponentGravityTypeCenter,
 								Action: &linebot.URIAction{
 									Label: "+1",
-									URI:   "https://liff.line.me/1602541695-bYKBPBe6",
+									URI:   "https://liff.line.me/1653816155-R77M7Yly",
 								},
 							},
 						},
