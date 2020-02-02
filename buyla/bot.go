@@ -7,8 +7,10 @@ import (
 	"github.com/line/line-bot-sdk-go/linebot"
 	"log"
 	"net/http"
+	"os"
 	"regexp"
 	"strings"
+	"time"
 )
 
 const (
@@ -26,9 +28,11 @@ const (
 )
 
 type Bot struct {
-	bot     *linebot.Client
-	data    *MetaData
-	baseUrl string
+	bot              *linebot.Client
+	data             *MetaData
+	baseUrl          string
+	selfPingTermail  chan bool
+	isSelfPingEnable bool
 }
 
 func getUID(source *linebot.EventSource) string {
@@ -370,6 +374,12 @@ func (this *Bot) handleText(message *linebot.TextMessage, replyToken string, sou
 			}
 		}
 
+		if !this.isSelfPingEnable {
+			appName := os.Getenv("HEROKU_APP_NAME")
+			this.selfPingTermail = this.SelfPing("https://" + appName + ".herokuapp.com")
+			this.isSelfPingEnable = true
+		}
+
 		this.data.Groups[gid].IsOpen = true
 		log.Println("[OPEN]", gid)
 		return this.replyText(replyToken, gid, "開團啦~~!!!!! ")
@@ -380,6 +390,22 @@ func (this *Bot) handleText(message *linebot.TextMessage, replyToken string, sou
 			return this.replyText(replyToken, gid, "'["+keyword+"]'只能在群組裡面使用喔!")
 		}
 		if _, ok := this.data.Groups[gid]; ok && this.data.Groups[gid].IsOpen == true {
+			isOpening := false
+			for g, data := range this.data.Groups {
+				if g != gid {
+					if data.IsOpen {
+						isOpening = true
+						log.Println("Others Group is Opening")
+						break
+					}
+				}
+			}
+
+			if !isOpening {
+				this.selfPingTermail <- true
+				this.isSelfPingEnable = false
+			}
+
 			this.data.Groups[gid].IsOpen = false
 			log.Println("[CLOSE]", gid)
 		} else {
@@ -554,4 +580,43 @@ func (this *Bot) Callback(w http.ResponseWriter, r *http.Request) {
 			log.Printf("Unknown event: %v", event)
 		}
 	}
+}
+
+func (thid *Bot) SelfPing(url string) chan bool {
+	log.Println("Enable self ping:" + url)
+	return SetInterval(func() {
+		resp, err := http.Get(url)
+		log.Println("ping: Sending heartbeat to " + url)
+		if err != nil {
+			log.Printf("heroku-self-ping: Sending heartbeat error %s", err)
+		}
+		defer resp.Body.Close()
+	}, 300000, false)
+}
+
+func SetInterval(doFunc func(), milliseconds int, async bool) chan bool {
+
+	interval := time.Duration(milliseconds) * time.Millisecond
+
+	ticker := time.NewTicker(interval)
+	clear := make(chan bool)
+
+	go func() {
+		for {
+			select {
+			case <-ticker.C:
+				if async {
+					go doFunc()
+				} else {
+					doFunc()
+				}
+			case <-clear:
+				log.Println("Disable self ping")
+				ticker.Stop()
+				return
+			}
+		}
+	}()
+	return clear
+
 }
